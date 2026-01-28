@@ -174,7 +174,7 @@ export const SurveyTestShellClient = ({
   const sidebarPanels = ({ collapsed }: { collapsed: boolean }) => {
     if (collapsed) return null;
     return (
-      <details className="group" open>
+      <details className="group">
         <summary className="flex cursor-pointer items-center justify-between rounded-xl border border-ink-200/70 bg-white/95 px-3 py-2 text-xs font-semibold text-ink-900">
           Preview settings
           <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
@@ -284,4 +284,3 @@ export const SurveyTestShellClient = ({
     </SurveyShell>
   );
 };
-
