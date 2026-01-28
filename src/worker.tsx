@@ -7,6 +7,7 @@ import { setCommonHeaders } from "@/app/headers";
 import { logRequests } from "@/app/logging";
 import { SurveysPage } from "@/app/pages/surveys";
 import { SurveysNewPage } from "@/app/pages/surveys-new";
+import { SettingsPage } from "@/app/pages/settings";
 import { SurveyOverviewPage } from "@/app/pages/survey";
 import { SurveyScriptPage } from "@/app/pages/survey-script";
 import { SurveyTestPage } from "@/app/pages/survey-test";
@@ -34,6 +35,7 @@ export default defineApp([
     route("/", SurveysPage),
     route("/surveys", SurveysPage),
     route("/surveys/new", SurveysNewPage),
+    route("/settings", SettingsPage),
     route("/surveys/:id", SurveyOverviewPage),
     route("/surveys/:id/script", SurveyScriptPage),
     route("/surveys/:id/test", SurveyTestPage),
