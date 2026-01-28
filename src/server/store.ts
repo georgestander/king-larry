@@ -155,6 +155,18 @@ export const getScriptVersion = async (versionId: string) => {
   return versions[0] ?? null;
 };
 
+export const updateScriptVersionPreview = async (versionId: string, transcriptJson: string | null) => {
+  const db = getDb();
+  await db
+    .updateTable("script_versions")
+    .set({
+      preview_transcript_json: transcriptJson,
+      preview_updated_at: transcriptJson ? nowIso() : null,
+    })
+    .where("id", "=", versionId)
+    .execute();
+};
+
 export const createScript = async (
   title: string,
   json: string,

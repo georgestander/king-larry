@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { SurveyShell } from "@/app/components/builder/SurveyShell";
 import { buildSurveySteps } from "@/app/components/builder/steps";
-import { getScript, listScriptVersions, listSessionsByScriptId } from "@/server/store";
+import { getActiveScriptVersion, getScript, listScriptVersions, listSessionsByScriptId } from "@/server/store";
 
 export const SurveyPublishPage = async ({ params }: { params: { id: string } }) => {
   const [script, versions, runs] = await Promise.all([
@@ -20,11 +20,12 @@ export const SurveyPublishPage = async ({ params }: { params: { id: string } }) 
     );
   }
 
+  const activeVersion = await getActiveScriptVersion(script.id);
   const steps = buildSurveySteps({
     surveyId: script.id,
     activeStep: "publish",
     hasScript: versions.length > 0,
-    hasPreview: false,
+    hasPreview: Boolean(activeVersion?.preview_transcript_json),
     hasRuns: runs.length > 0,
   });
 

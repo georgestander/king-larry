@@ -1,9 +1,13 @@
 "use server";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { SurveyShell } from "@/app/components/builder/SurveyShell";
 import { buildSurveySteps } from "@/app/components/builder/steps";
-import { getScript, listScriptVersions, listSessionsByScriptId } from "@/server/store";
+import { SurveyTestClient } from "@/app/pages/survey-test-client";
+import { defaultInterview, defaultPrompt } from "@/data/default-script";
+import { resolveProvider } from "@/lib/ai";
+import { editorDraftFromInterview } from "@/lib/editor-to-interview";
+import { getDefaultModel } from "@/lib/models";
+import { getActiveScriptVersion, getScript, listScriptVersions, listSessionsByScriptId } from "@/server/store";
 
 export const SurveyTestPage = async ({ params }: { params: { id: string } }) => {
   const [script, versions, runs] = await Promise.all([
@@ -20,13 +24,38 @@ export const SurveyTestPage = async ({ params }: { params: { id: string } }) => 
     );
   }
 
+  const activeVersion = await getActiveScriptVersion(script.id);
   const steps = buildSurveySteps({
     surveyId: script.id,
     activeStep: "test",
     hasScript: versions.length > 0,
-    hasPreview: false,
+    hasPreview: Boolean(activeVersion?.preview_transcript_json),
     hasRuns: runs.length > 0,
   });
+
+  let draft = editorDraftFromInterview(defaultInterview);
+  draft.meta.title = script.title;
+  draft.promptMarkdown = defaultPrompt.trim();
+
+  if (activeVersion?.editor_json) {
+    try {
+      draft = JSON.parse(activeVersion.editor_json) as typeof draft;
+    } catch {
+      draft = draft;
+    }
+  } else if (activeVersion?.json) {
+    try {
+      const parsed = JSON.parse(activeVersion.json);
+      draft = editorDraftFromInterview(parsed);
+    } catch {
+      draft = draft;
+    }
+  }
+
+  draft.promptMarkdown = activeVersion?.prompt_markdown ?? draft.promptMarkdown;
+
+  const initialProvider = resolveProvider();
+  const initialModel = getDefaultModel(initialProvider);
 
   return (
     <SurveyShell
@@ -46,20 +75,20 @@ export const SurveyTestPage = async ({ params }: { params: { id: string } }) => 
         created_at: run.created_at,
       }))}
     >
-      <Card className="border-ink-200/70 bg-white/95">
-        <CardHeader>
-          <CardTitle className="text-xl">Test chat</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-ink-600">
-          <p>Preview the participant experience here before publishing.</p>
-          <a
-            className="inline-flex rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-ink-50"
-            href={`/surveys/${script.id}/publish`}
-          >
-            Continue to publish
-          </a>
-        </CardContent>
-      </Card>
+      {activeVersion ? (
+        <SurveyTestClient
+          scriptId={script.id}
+          versionId={activeVersion.id}
+          draft={draft}
+          initialProvider={initialProvider}
+          initialModel={initialModel}
+          timeLimitMinutes={15}
+        />
+      ) : (
+        <div className="rounded-2xl border border-ink-200 bg-white/90 p-8 text-sm text-ink-600">
+          Save a script version before testing the chat.
+        </div>
+      )}
     </SurveyShell>
   );
 };
