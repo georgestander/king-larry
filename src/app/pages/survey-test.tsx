@@ -1,8 +1,7 @@
 "use server";
 
-import { SurveyShell } from "@/app/components/builder/SurveyShell";
 import { buildSurveySteps } from "@/app/components/builder/steps";
-import { SurveyTestClient } from "@/app/pages/survey-test-client";
+import { SurveyTestShellClient } from "@/app/pages/survey-test-shell-client";
 import { defaultInterviewTemplate, defaultPrompt } from "@/data/default-script";
 import { resolveProvider } from "@/lib/ai";
 import { editorDraftFromInterview } from "@/lib/editor-to-interview";
@@ -58,9 +57,8 @@ export const SurveyTestPage = async ({ params }: { params: { id: string } }) => 
   const initialModel = getDefaultModel(initialProvider);
 
   return (
-    <SurveyShell
+    <SurveyTestShellClient
       title={script.title}
-      subtitle="Test chat"
       steps={steps}
       versions={versions.map((version) => ({
         id: version.id,
@@ -74,21 +72,12 @@ export const SurveyTestPage = async ({ params }: { params: { id: string } }) => 
         status: run.status,
         created_at: run.created_at,
       }))}
-    >
-      {activeVersion ? (
-        <SurveyTestClient
-          scriptId={script.id}
-          versionId={activeVersion.id}
-          draft={draft}
-          initialProvider={initialProvider}
-          initialModel={initialModel}
-          timeLimitMinutes={15}
-        />
-      ) : (
-        <div className="rounded-2xl border border-ink-200 bg-white/90 p-8 text-sm text-ink-600">
-          Save a script version before testing the chat.
-        </div>
-      )}
-    </SurveyShell>
+      scriptId={script.id}
+      versionId={activeVersion?.id ?? null}
+      draft={draft}
+      initialProvider={initialProvider}
+      initialModel={initialModel}
+      timeLimitMinutes={15}
+    />
   );
 };

@@ -32,6 +32,7 @@ type SurveyShellProps = {
   steps: SurveyStep[];
   versions: SurveyVersionItem[];
   runs: SurveyRunItem[];
+  sidebarPanels?: (options: { collapsed: boolean }) => React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -41,6 +42,7 @@ export const SurveyShell = ({
   steps,
   versions,
   runs,
+  sidebarPanels,
   children,
 }: SurveyShellProps) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -78,6 +80,7 @@ export const SurveyShell = ({
     () => runs.find((run) => run.status === "active") ?? runs[0],
     [runs],
   );
+  const sidebarPanelsNode = !collapsed && sidebarPanels ? sidebarPanels({ collapsed }) : null;
 
   return (
     <div className="min-h-screen bg-ink-50 text-ink-950 [background-image:radial-gradient(1200px_circle_at_top,_rgba(255,255,255,0.9),_transparent)]">
@@ -197,6 +200,15 @@ export const SurveyShell = ({
                   <p className="text-xs text-ink-500">Current: {activeStep.label}</p>
                 )}
               </div>
+
+              {sidebarPanelsNode && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    {sidebarPanelsNode}
+                  </div>
+                </>
+              )}
 
               <Separator />
 
