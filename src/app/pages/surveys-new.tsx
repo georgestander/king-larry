@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 
 import { Button } from "@/app/components/ui/button";
@@ -9,7 +9,8 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
-import { MODEL_OPTIONS, getDefaultModel, type ModelProvider } from "@/lib/models";
+import { ErrorBanner, type ErrorInfo } from "@/app/components/alerts/ErrorBanner";
+import { MODEL_OPTIONS, getDefaultModel, type ModelOption, type ModelProvider } from "@/lib/models";
 import type { ScriptEditorDraft } from "@/lib/editor-types";
 
 const postJson = async <T,>(url: string, body: unknown): Promise<T> => {
@@ -24,8 +25,12 @@ const postJson = async <T,>(url: string, body: unknown): Promise<T> => {
       ? (payload as { error?: string }).error
       : "Request failed";
     const details = (payload as { details?: unknown }).details;
+    const requestId = (payload as { requestId?: string }).requestId;
     const detailText = details ? ` (${JSON.stringify(details)})` : "";
-    throw new Error(`${baseMessage}${detailText}`);
+    const error = new Error(`${baseMessage}${detailText}`);
+    (error as Error & { details?: unknown; requestId?: string }).details = details;
+    (error as Error & { details?: unknown; requestId?: string }).requestId = requestId;
+    throw error;
   }
   return response.json() as Promise<T>;
 };
@@ -37,10 +42,41 @@ export const SurveysNewPage = () => {
   const [notes, setNotes] = useState("");
   const [provider, setProvider] = useState<ModelProvider>("openai");
   const [model, setModel] = useState(getDefaultModel("openai"));
+  const [modelOptions, setModelOptions] = useState<ModelOption[]>(MODEL_OPTIONS.openai);
+  const [availableProviders, setAvailableProviders] = useState({
+    openai: true,
+    anthropic: true,
+    openrouter: true,
+  });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorInfo | null>(null);
 
-  const modelOptions = useMemo(() => MODEL_OPTIONS[provider], [provider]);
+  useEffect(() => {
+    fetch("/api/config")
+      .then((response) => response.json())
+      .then((data) => {
+        const providers = (data as { providers?: typeof availableProviders }).providers;
+        const defaults = (data as { defaults?: { provider?: ModelProvider; model?: string } }).defaults;
+        if (providers) setAvailableProviders(providers);
+        if (defaults?.provider) setProvider(defaults.provider);
+        if (defaults?.model) setModel(defaults.model);
+      })
+      .catch(() => null);
+  }, []);
+
+  useEffect(() => {
+    fetch(`/api/models/${provider}`)
+      .then((response) => response.json())
+      .then((data) => {
+        const models = (data as { models?: ModelOption[] }).models;
+        if (models?.length) {
+          setModelOptions(models);
+        } else {
+          setModelOptions(MODEL_OPTIONS[provider]);
+        }
+      })
+      .catch(() => setModelOptions(MODEL_OPTIONS[provider]));
+  }, [provider]);
 
   useEffect(() => {
     if (!modelOptions.find((option) => option.id === model)) {
@@ -69,7 +105,17 @@ export const SurveysNewPage = () => {
       });
       window.location.href = `/surveys/${response.scriptId}/script`;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate");
+      if (err instanceof Error) {
+        const details = (err as Error & { details?: unknown }).details;
+        const requestId = (err as Error & { requestId?: string }).requestId;
+        setError({
+          message: err.message,
+          details: details ? JSON.stringify(details, null, 2) : undefined,
+          requestId,
+        });
+      } else {
+        setError({ message: "Failed to generate" });
+      }
     } finally {
       setLoading(false);
     }
@@ -115,16 +161,22 @@ export const SurveysNewPage = () => {
                 <div className="space-y-2">
                   <Label>Provider</Label>
                   <Select value={provider} onValueChange={(value) => setProvider(value as ModelProvider)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="anthropic">Anthropic</SelectItem>
-                      <SelectItem value="openai">OpenAI</SelectItem>
-                      <SelectItem value="openrouter">OpenRouter</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="anthropic" disabled={!availableProviders.anthropic}>
+                      Anthropic
+                    </SelectItem>
+                    <SelectItem value="openai" disabled={!availableProviders.openai}>
+                      OpenAI
+                    </SelectItem>
+                    <SelectItem value="openrouter" disabled={!availableProviders.openrouter}>
+                      OpenRouter
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               </div>
               <div className="space-y-2">
                 <Label>Goal</Label>
@@ -157,7 +209,7 @@ export const SurveysNewPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              <ErrorBanner error={error} />
               <Button onClick={handleGenerate} disabled={!title || !goal || loading} className="w-full">
                 <Sparkles className="mr-2 h-4 w-4" />
                 Generate script

@@ -42,5 +42,6 @@
   // Environment variables
   "vars": {
     // Add your environment variables here
+    "MOCK_AI": "0"
   }
 }

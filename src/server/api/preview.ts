@@ -6,7 +6,7 @@ import { getModel, resolveProvider } from "@/lib/ai";
 import { interviewFromEditorDraft } from "@/lib/editor-to-interview";
 import { validateEditorDraft } from "@/lib/editor-validators";
 import { buildSystemPrompt } from "@/lib/prompt";
-import { errorResponse, json, parseJsonBody, textStreamResponse } from "@/server/api/utils";
+import { errorResponse, isMockAiEnabled, json, parseJsonBody, textStreamResponse } from "@/server/api/utils";
 import { getScript, getScriptVersion, updateScriptVersionPreview } from "@/server/store";
 
 export const handlePreviewChat = async (request: Request) => {
@@ -29,6 +29,16 @@ export const handlePreviewChat = async (request: Request) => {
   const validation = validateEditorDraft(body.draft);
   if (!validation.ok) {
     return errorResponse(422, "Draft failed validation", validation.errors);
+  }
+
+  if (isMockAiEnabled()) {
+    const stream = new ReadableStream<string>({
+      start(controller) {
+        controller.enqueue("Mock preview response: thanks for testing the interview.");
+        controller.close();
+      },
+    });
+    return textStreamResponse(stream);
   }
 
   const provider = resolveProvider(body.provider);

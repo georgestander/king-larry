@@ -16,7 +16,7 @@ import {
   markParticipantStarted,
   setParticipantName,
 } from "@/server/store";
-import { errorResponse, json, parseJsonBody, textStreamResponse } from "@/server/api/utils";
+import { errorResponse, isMockAiEnabled, json, parseJsonBody, textStreamResponse } from "@/server/api/utils";
 
 const extractMessageText = (message: UIMessage | undefined) => {
   if (!message) return "";
@@ -105,6 +105,19 @@ export const handleInterviewMessage = async (request: Request, token: string) =>
         await setParticipantName(participant.id, candidate);
       }
     }
+  }
+
+  if (isMockAiEnabled()) {
+    const assistantTurn = await getNextTurnIndex(participant.id);
+    const mockText = "Mock response: thanks for sharing. Could you tell me more?";
+    await addMessage(participant.id, assistantTurn, "assistant", mockText);
+    const stream = new ReadableStream<string>({
+      start(controller) {
+        controller.enqueue(mockText);
+        controller.close();
+      },
+    });
+    return textStreamResponse(stream);
   }
 
   const system = buildSystemPrompt(validation.data, version.prompt_markdown, session.time_limit_minutes);

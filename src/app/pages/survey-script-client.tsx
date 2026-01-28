@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
+import { ErrorBanner, type ErrorInfo } from "@/app/components/alerts/ErrorBanner";
 import type { ScriptEditorDraft } from "@/lib/editor-types";
 import { editorDraftFromInterview, interviewFromEditorDraft } from "@/lib/editor-to-interview";
 import { validateInterviewDefinition } from "@/lib/interview-validators";
@@ -30,8 +31,12 @@ const postJson = async <T,>(url: string, body: unknown): Promise<T> => {
       ? (payload as { error?: string }).error
       : "Request failed";
     const details = (payload as { details?: unknown }).details;
+    const requestId = (payload as { requestId?: string }).requestId;
     const detailText = details ? ` (${JSON.stringify(details)})` : "";
-    throw new Error(`${baseMessage}${detailText}`);
+    const error = new Error(`${baseMessage}${detailText}`);
+    (error as Error & { details?: unknown; requestId?: string }).details = details;
+    (error as Error & { details?: unknown; requestId?: string }).requestId = requestId;
+    throw error;
   }
   return response.json() as Promise<T>;
 };
@@ -39,7 +44,7 @@ const postJson = async <T,>(url: string, body: unknown): Promise<T> => {
 export const SurveyScriptClient = ({ scriptId, versionId, initialDraft }: SurveyScriptClientProps) => {
   const [draft, setDraft] = useState<ScriptEditorDraft>(initialDraft);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorInfo | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [importJson, setImportJson] = useState("");
 
@@ -118,7 +123,17 @@ export const SurveyScriptClient = ({ scriptId, versionId, initialDraft }: Survey
         window.location.reload();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      if (err instanceof Error) {
+        const details = (err as Error & { details?: unknown }).details;
+        const requestId = (err as Error & { requestId?: string }).requestId;
+        setError({
+          message: err.message,
+          details: details ? JSON.stringify(details, null, 2) : undefined,
+          requestId,
+        });
+      } else {
+        setError({ message: "Failed to save" });
+      }
     } finally {
       setSaving(false);
     }
@@ -130,7 +145,7 @@ export const SurveyScriptClient = ({ scriptId, versionId, initialDraft }: Survey
       const parsed = JSON.parse(importJson) as unknown;
       const validation = validateInterviewDefinition(parsed);
       if (!validation.ok) {
-        setError(validation.errors.join(", "));
+        setError({ message: validation.errors.join(", ") });
         return;
       }
       const nextDraft = editorDraftFromInterview(validation.data);
@@ -138,7 +153,7 @@ export const SurveyScriptClient = ({ scriptId, versionId, initialDraft }: Survey
       setDraft(nextDraft);
       setImportJson("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Invalid JSON");
+      setError({ message: err instanceof Error ? err.message : "Invalid JSON" });
     }
   };
 
@@ -277,7 +292,7 @@ export const SurveyScriptClient = ({ scriptId, versionId, initialDraft }: Survey
         </CardContent>
       </Card>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <ErrorBanner error={error} />
       {savedAt && <p className="text-sm text-ink-500">Saved {new Date(savedAt).toLocaleTimeString()}</p>}
     </div>
   );

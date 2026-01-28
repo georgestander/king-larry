@@ -4,7 +4,7 @@ import { generateText } from "ai";
 
 import { getModel, resolveProvider } from "@/lib/ai";
 import { normalizeGeneratedInterview } from "@/lib/interview-normalize";
-import { defaultPrompt } from "@/data/default-script";
+import { defaultInterview, defaultPrompt } from "@/data/default-script";
 import { editorDraftFromInterview, interviewFromEditorDraft } from "@/lib/editor-to-interview";
 import { validateEditorDraft } from "@/lib/editor-validators";
 import { validateInterviewDefinition } from "@/lib/interview-validators";
@@ -19,7 +19,7 @@ import {
   listScriptVersions,
   updateScriptTitle,
 } from "@/server/store";
-import { errorResponse, json, parseJsonBody } from "@/server/api/utils";
+import { errorResponse, isMockAiEnabled, json, parseJsonBody } from "@/server/api/utils";
 
 type GenerateBody = {
   title: string;
@@ -34,6 +34,15 @@ export const handleScriptsGenerate = async (request: Request) => {
   const body = await parseJsonBody<GenerateBody>(request);
   if (!body?.title || !body?.goal) {
     return errorResponse(400, "title and goal are required");
+  }
+
+  if (isMockAiEnabled()) {
+    const draft = editorDraftFromInterview(defaultInterview);
+    draft.meta.title = body.title;
+    draft.meta.subtitle = body.audience ? `Audience: ${body.audience}` : draft.meta.subtitle;
+    draft.briefingMarkdown = body.goal ? `Goal: ${body.goal}` : draft.briefingMarkdown;
+    draft.promptMarkdown = defaultPrompt.trim();
+    return json({ draft });
   }
 
   const provider = resolveProvider(body.provider);

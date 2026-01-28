@@ -12,7 +12,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import type { ScriptEditorDraft } from "@/lib/editor-types";
-import { MODEL_OPTIONS, getDefaultModel, type ModelProvider } from "@/lib/models";
+import { MODEL_OPTIONS, getDefaultModel, type ModelOption, type ModelProvider } from "@/lib/models";
 
 type SurveyTestClientProps = {
   scriptId: string;
@@ -33,6 +33,12 @@ export const SurveyTestClient = ({
 }: SurveyTestClientProps) => {
   const [provider, setProvider] = useState<ModelProvider>(initialProvider);
   const [model, setModel] = useState(initialModel);
+  const [modelOptions, setModelOptions] = useState<ModelOption[]>(MODEL_OPTIONS[initialProvider]);
+  const [availableProviders, setAvailableProviders] = useState({
+    openai: true,
+    anthropic: true,
+    openrouter: true,
+  });
   const [timeLimit, setTimeLimit] = useState(String(timeLimitMinutes));
   const [started, setStarted] = useState(false);
   const [startedAt, setStartedAt] = useState<number | null>(null);
@@ -49,7 +55,35 @@ export const SurveyTestClient = ({
   const { messages, sendMessage, status, setMessages } = useChat({ transport });
   const isLoading = status === "streaming" || status === "submitted";
 
-  const modelOptions = useMemo(() => MODEL_OPTIONS[provider], [provider]);
+  useEffect(() => {
+    fetch("/api/config")
+      .then((response) => response.json())
+      .then((data) => {
+        const providers = (data as { providers?: typeof availableProviders }).providers;
+        if (providers) {
+          setAvailableProviders(providers);
+          if (!providers[provider]) {
+            const next = (Object.keys(providers) as ModelProvider[]).find((key) => providers[key]) ?? provider;
+            setProvider(next);
+          }
+        }
+      })
+      .catch(() => null);
+  }, []);
+
+  useEffect(() => {
+    fetch(`/api/models/${provider}`)
+      .then((response) => response.json())
+      .then((data) => {
+        const models = (data as { models?: ModelOption[] }).models;
+        if (models?.length) {
+          setModelOptions(models);
+        } else {
+          setModelOptions(MODEL_OPTIONS[provider]);
+        }
+      })
+      .catch(() => setModelOptions(MODEL_OPTIONS[provider]));
+  }, [provider]);
 
   useEffect(() => {
     if (!modelOptions.find((option) => option.id === model)) {
@@ -139,16 +173,22 @@ export const SurveyTestClient = ({
           <div className="space-y-2">
             <Label>Provider</Label>
             <Select value={provider} onValueChange={(value) => setProvider(value as ModelProvider)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="anthropic">Anthropic</SelectItem>
-                <SelectItem value="openai">OpenAI</SelectItem>
-                <SelectItem value="openrouter">OpenRouter</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="anthropic" disabled={!availableProviders.anthropic}>
+                Anthropic
+              </SelectItem>
+              <SelectItem value="openai" disabled={!availableProviders.openai}>
+                OpenAI
+              </SelectItem>
+              <SelectItem value="openrouter" disabled={!availableProviders.openrouter}>
+                OpenRouter
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
           <div className="space-y-2">
             <Label>Model</Label>
             <Select value={model} onValueChange={setModel}>

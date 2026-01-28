@@ -9,7 +9,8 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
-import { MODEL_OPTIONS, getDefaultModel, type ModelProvider } from "@/lib/models";
+import { ErrorBanner, type ErrorInfo } from "@/app/components/alerts/ErrorBanner";
+import { MODEL_OPTIONS, getDefaultModel, type ModelOption, type ModelProvider } from "@/lib/models";
 
 type SurveyPublishClientProps = {
   scriptId: string;
@@ -36,8 +37,12 @@ const postJson = async <T,>(url: string, body: unknown): Promise<T> => {
       ? (payload as { error?: string }).error
       : "Request failed";
     const details = (payload as { details?: unknown }).details;
+    const requestId = (payload as { requestId?: string }).requestId;
     const detailText = details ? ` (${JSON.stringify(details)})` : "";
-    throw new Error(`${baseMessage}${detailText}`);
+    const error = new Error(`${baseMessage}${detailText}`);
+    (error as Error & { details?: unknown; requestId?: string }).details = details;
+    (error as Error & { details?: unknown; requestId?: string }).requestId = requestId;
+    throw error;
   }
   return response.json() as Promise<T>;
 };
@@ -87,15 +92,49 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
   const [timeLimit, setTimeLimit] = useState("15");
   const [provider, setProvider] = useState<ModelProvider>("openai");
   const [model, setModel] = useState(getDefaultModel("openai"));
+  const [modelOptions, setModelOptions] = useState<ModelOption[]>(MODEL_OPTIONS.openai);
+  const [availableProviders, setAvailableProviders] = useState({
+    openai: true,
+    anthropic: true,
+    openrouter: true,
+  });
   const [inviteEmails, setInviteEmails] = useState("");
   const [anonymousCount, setAnonymousCount] = useState("0");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [inviteTokens, setInviteTokens] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<{ sent: number; started: number; completed: number; completionRate: number } | null>(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorInfo | null>(null);
 
-  const modelOptions = useMemo(() => MODEL_OPTIONS[provider], [provider]);
+  useEffect(() => {
+    fetch("/api/config")
+      .then((response) => response.json())
+      .then((data) => {
+        const providers = (data as { providers?: typeof availableProviders }).providers;
+        if (providers) {
+          setAvailableProviders(providers);
+          if (!providers[provider]) {
+            const next = (Object.keys(providers) as ModelProvider[]).find((key) => providers[key]) ?? provider;
+            setProvider(next);
+          }
+        }
+      })
+      .catch(() => null);
+  }, []);
+
+  useEffect(() => {
+    fetch(`/api/models/${provider}`)
+      .then((response) => response.json())
+      .then((data) => {
+        const models = (data as { models?: ModelOption[] }).models;
+        if (models?.length) {
+          setModelOptions(models);
+        } else {
+          setModelOptions(MODEL_OPTIONS[provider]);
+        }
+      })
+      .catch(() => setModelOptions(MODEL_OPTIONS[provider]));
+  }, [provider]);
 
   useEffect(() => {
     if (!modelOptions.find((option) => option.id === model)) {
@@ -124,7 +163,17 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
       setSessionId(session.sessionId);
       await refreshMetrics(session.sessionId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to publish");
+      if (err instanceof Error) {
+        const details = (err as Error & { details?: unknown }).details;
+        const requestId = (err as Error & { requestId?: string }).requestId;
+        setError({
+          message: err.message,
+          details: details ? JSON.stringify(details, null, 2) : undefined,
+          requestId,
+        });
+      } else {
+        setError({ message: "Failed to publish" });
+      }
     } finally {
       setSaving(false);
     }
@@ -159,7 +208,17 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
       }
       await refreshMetrics(sessionId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to invite");
+      if (err instanceof Error) {
+        const details = (err as Error & { details?: unknown }).details;
+        const requestId = (err as Error & { requestId?: string }).requestId;
+        setError({
+          message: err.message,
+          details: details ? JSON.stringify(details, null, 2) : undefined,
+          requestId,
+        });
+      } else {
+        setError({ message: "Failed to invite" });
+      }
     } finally {
       setSaving(false);
     }
@@ -185,16 +244,22 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
             <div className="space-y-2">
               <Label>Provider</Label>
               <Select value={provider} onValueChange={(value) => setProvider(value as ModelProvider)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="anthropic">Anthropic</SelectItem>
-                  <SelectItem value="openai">OpenAI</SelectItem>
-                  <SelectItem value="openrouter">OpenRouter</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="anthropic" disabled={!availableProviders.anthropic}>
+                  Anthropic
+                </SelectItem>
+                <SelectItem value="openai" disabled={!availableProviders.openai}>
+                  OpenAI
+                </SelectItem>
+                <SelectItem value="openrouter" disabled={!availableProviders.openrouter}>
+                  OpenRouter
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
             <div className="space-y-2">
               <Label>Model</Label>
               <Select value={model} onValueChange={setModel}>
@@ -211,7 +276,7 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
               </Select>
             </div>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          <ErrorBanner error={error} />
           {!sessionId ? (
             <Button onClick={handlePublish} disabled={saving}>
               <Sparkles className="mr-2 h-4 w-4" />
