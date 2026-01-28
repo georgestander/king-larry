@@ -24,6 +24,29 @@ export const textStreamResponse = (stream: ReadableStream<string>) =>
     },
   });
 
+export const prependTextStream = (prefix: string, stream: ReadableStream<string>) => {
+  if (!prefix) return stream;
+  const reader = stream.getReader();
+  let started = false;
+  return new ReadableStream<string>({
+    async pull(controller) {
+      if (!started) {
+        controller.enqueue(prefix);
+        started = true;
+      }
+      const { done, value } = await reader.read();
+      if (done) {
+        controller.close();
+        return;
+      }
+      controller.enqueue(value);
+    },
+    cancel(reason) {
+      reader.cancel(reason).catch(() => undefined);
+    },
+  });
+};
+
 export const isMockAiEnabled = () => {
   const runtimeEnv = env as unknown as Record<string, string | undefined>;
   const value = runtimeEnv.MOCK_AI ?? "";

@@ -16,7 +16,7 @@ import {
   markParticipantStarted,
   setParticipantName,
 } from "@/server/store";
-import { errorResponse, isMockAiEnabled, json, parseJsonBody, textStreamResponse } from "@/server/api/utils";
+import { errorResponse, isMockAiEnabled, json, parseJsonBody, prependTextStream, textStreamResponse } from "@/server/api/utils";
 
 const extractMessageText = (message: UIMessage | undefined) => {
   if (!message) return "";
@@ -55,6 +55,7 @@ export const handleInterviewMessage = async (request: Request, token: string) =>
   if (participant.status === "completed") {
     return errorResponse(410, "Interview already completed");
   }
+  const hadName = Boolean(participant.name);
 
   const session = await getSession(participant.session_id);
   if (!session) return errorResponse(404, "Session not found");
@@ -106,10 +107,13 @@ export const handleInterviewMessage = async (request: Request, token: string) =>
       }
     }
   }
+  const nameValue = hadName ? participant.name : userText.split("\n")[0]?.trim().slice(0, 80);
+  const shouldGreet = !hadName && Boolean(nameValue);
+  const greetingPrefix = shouldGreet && nameValue ? `Nice to meet you, ${nameValue}. ` : "";
 
   if (isMockAiEnabled()) {
     const assistantTurn = await getNextTurnIndex(participant.id);
-    const mockText = "Mock response: thanks for sharing. Could you tell me more?";
+    const mockText = `${greetingPrefix}Mock response: thanks for sharing. Could you tell me more?`;
     await addMessage(participant.id, assistantTurn, "assistant", mockText);
     const stream = new ReadableStream<string>({
       start(controller) {
@@ -129,13 +133,15 @@ export const handleInterviewMessage = async (request: Request, token: string) =>
   });
 
   const [stream, captureStream] = result.textStream.tee();
-  void readStreamToString(captureStream).then(async (assistantText) => {
+  const responseStream = shouldGreet ? prependTextStream(greetingPrefix, stream) : stream;
+  const captureStreamWithGreeting = shouldGreet ? prependTextStream(greetingPrefix, captureStream) : captureStream;
+  void readStreamToString(captureStreamWithGreeting).then(async (assistantText) => {
     if (!assistantText) return;
     const assistantTurn = await getNextTurnIndex(participant.id);
     await addMessage(participant.id, assistantTurn, "assistant", assistantText);
   });
 
-  return textStreamResponse(stream);
+  return textStreamResponse(responseStream);
 };
 
 export const handleInterviewComplete = async (request: Request, token: string) => {
