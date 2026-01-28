@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, FileText, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Calendar, FileText, Sparkles, Users } from "lucide-react";
 
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -24,9 +24,8 @@ import {
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import { Separator } from "@/app/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Textarea } from "@/app/components/ui/textarea";
+import { MODEL_OPTIONS, getDefaultModel, type ModelProvider } from "@/lib/models";
 
 type ScriptSummary = {
   id: string;
@@ -38,7 +37,7 @@ type ScriptSummary = {
 type SessionSummary = {
   id: string;
   title: string;
-  provider: "openai" | "anthropic" | "openrouter";
+  provider: ModelProvider;
   model: string;
   time_limit_minutes: number;
   status: "draft" | "active" | "closed";
@@ -76,10 +75,6 @@ const postJson = async <T,>(url: string, body: unknown): Promise<T> => {
 };
 
 export default function Dashboard({ scripts, sessions }: DashboardProps) {
-  const activeSessions = sessions.filter((session) => session.status === "active").length;
-  const avgLimit = sessions.length
-    ? Math.round(sessions.reduce((sum, session) => sum + session.time_limit_minutes, 0) / sessions.length)
-    : 0;
   return (
     <div className="min-h-screen bg-ink-50 text-ink-950 [background-image:radial-gradient(1200px_circle_at_top,_rgba(255,255,255,0.9),_transparent)]">
       <header className="border-b border-ink-200/60 bg-white/80 backdrop-blur">
@@ -90,277 +85,168 @@ export default function Dashboard({ scripts, sessions }: DashboardProps) {
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.35em] text-ink-400">Narrative Interviewer</p>
-              <h1 className="text-3xl font-semibold text-ink-950">Interview Ops Studio</h1>
+              <h1 className="text-3xl font-semibold text-ink-950">Survey Studio</h1>
             </div>
           </div>
-          <p className="hidden text-sm text-ink-500 md:block">
-            Launch narrative interviews with versioned scripts and invite-only sessions.
-          </p>
+          <div className="hidden items-center gap-3 md:flex">
+            <Badge variant="secondary">{scripts.length} surveys</Badge>
+            <Badge variant="secondary">{sessions.length} sessions</Badge>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-6xl gap-8 px-6 py-8 lg:grid-cols-[2fr,1fr]">
+      <main className="mx-auto grid max-w-6xl gap-8 px-6 py-8 lg:grid-cols-[1.2fr,1fr]">
         <section className="space-y-6">
-          <div className="grid gap-4 rounded-2xl border border-ink-200/70 bg-white/80 p-5 shadow-[0_30px_60px_-50px_rgba(15,23,42,0.5)] md:grid-cols-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-ink-400">Scripts</p>
-              <p className="mt-2 text-3xl font-semibold text-ink-950">{scripts.length}</p>
-              <p className="text-xs text-ink-500">Active libraries</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-ink-400">Sessions</p>
-              <p className="mt-2 text-3xl font-semibold text-ink-950">{activeSessions}</p>
-              <p className="text-xs text-ink-500">Currently running</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-ink-400">Avg. time</p>
-              <p className="mt-2 text-3xl font-semibold text-ink-950">{avgLimit || 15}m</p>
-              <p className="text-xs text-ink-500">Interview limit</p>
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-ink-950">Scripts</h2>
-              <p className="text-sm text-ink-500">Versioned interview scripts with narrative prompts.</p>
-            </div>
-            <Badge variant="secondary">{scripts.length} total</Badge>
-          </div>
-
-          <div className="space-y-4">
-            {scripts.map((script) => (
-              <Card key={script.id}>
-                <CardHeader className="flex-row items-start justify-between gap-4">
-                  <div>
-                    <CardTitle>{script.title}</CardTitle>
-                    <CardDescription>Active version: {script.active_version_id ?? "None"}</CardDescription>
-                  </div>
-                  <ScriptVersionsDialog scriptId={script.id} />
-                </CardHeader>
-              </Card>
-            ))}
-            {scripts.length === 0 && (
-              <Card>
-                <CardContent className="py-10 text-center text-sm text-ink-500">
-                  No scripts yet. Generate one or create manually.
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </section>
-
-        <section className="space-y-6">
-          <Card className="border-ink-200/70 bg-white/85">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-base">Launch actions</CardTitle>
-              <CardDescription>Generate scripts, create versions, and open new sessions.</CardDescription>
+              <CardTitle>Your surveys</CardTitle>
+              <CardDescription>Past narrative surveys and their current versions.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <GenerateScriptDialog scripts={scripts} />
-              <CreateScriptDialog scripts={scripts} />
-              <CreateSessionDialog scripts={scripts} />
+            <CardContent className="space-y-4">
+              {scripts.map((script) => (
+                <Card key={script.id} className="border-ink-200/50 bg-white/95">
+                  <CardHeader className="flex-row items-start justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-base">{script.title}</CardTitle>
+                      <CardDescription>Active version: {script.active_version_id ?? "None"}</CardDescription>
+                    </div>
+                    <ScriptVersionsDialog scriptId={script.id} />
+                  </CardHeader>
+                </Card>
+              ))}
+              {scripts.length === 0 && (
+                <Card className="border-ink-200/50 bg-white/95">
+                  <CardContent className="py-10 text-center text-sm text-ink-500">
+                    No surveys yet. Start a new one on the right.
+                  </CardContent>
+                </Card>
+              )}
             </CardContent>
           </Card>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-ink-950">Sessions</h2>
-              <p className="text-sm text-ink-500">Active interview instances and completion tracking.</p>
-            </div>
-            <Badge variant="secondary">{sessions.length} total</Badge>
-          </div>
-
-          <div className="space-y-4">
-            {sessions.map((session) => (
-              <Card key={session.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between gap-2">
-                    <span>{session.title}</span>
-                    <Badge variant={session.status === "active" ? "accent" : "secondary"}>
-                      {session.status}
-                    </Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    {session.provider} / {session.model} · {session.time_limit_minutes} min
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between gap-3">
-                  <a
-                    className="text-sm font-medium text-ink-700 underline-offset-4 hover:underline"
-                    href={`/sessions/${session.id}`}
-                  >
-                    View session
-                  </a>
-                  <span className="text-xs text-ink-400">
-                    Created {new Date(session.created_at).toLocaleDateString()}
-                  </span>
-                </CardContent>
-              </Card>
-            ))}
-            {sessions.length === 0 && (
-              <Card>
-                <CardContent className="py-10 text-center text-sm text-ink-500">
-                  No sessions yet. Create one to invite participants.
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent sessions</CardTitle>
+              <CardDescription>Live or completed survey runs.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {sessions.map((session) => (
+                <Card key={session.id} className="border-ink-200/50 bg-white/95">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between gap-2 text-base">
+                      <span>{session.title}</span>
+                      <Badge variant={session.status === "active" ? "accent" : "secondary"}>
+                        {session.status}
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      {session.provider} / {session.model} · {session.time_limit_minutes} min
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex items-center justify-between text-xs text-ink-400">
+                    <span>Created {new Date(session.created_at).toLocaleDateString()}</span>
+                    <a
+                      className="text-sm font-medium text-ink-700 underline-offset-4 hover:underline"
+                      href={`/sessions/${session.id}`}
+                    >
+                      View session
+                    </a>
+                  </CardContent>
+                </Card>
+              ))}
+              {sessions.length === 0 && (
+                <Card className="border-ink-200/50 bg-white/95">
+                  <CardContent className="py-10 text-center text-sm text-ink-500">
+                    No sessions yet. Publish a survey to invite participants.
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
         </section>
 
-        <section className="lg:col-span-2">
-          <Separator className="my-10" />
-          <div className="grid gap-6 md:grid-cols-3">
-            <InsightCard
-              icon={<Sparkles className="h-5 w-5 text-accent-500" />}
-              title="Narrative cadence"
-              description="One question at a time, guided by adaptive prompts."
-            />
-            <InsightCard
-              icon={<Users className="h-5 w-5 text-accent-500" />}
-              title="Invite-only capture"
-              description="Each interview is locked to participant tokens."
-            />
-            <InsightCard
-              icon={<Calendar className="h-5 w-5 text-accent-500" />}
-              title="15-minute limit"
-              description="Time boxes keep interviews focused and efficient."
-            />
-          </div>
+        <section className="space-y-6">
+          <Card className="border-ink-200/70 bg-white/95">
+            <CardHeader>
+              <CardTitle>Create a new survey</CardTitle>
+              <CardDescription>Typeform‑style flow: brief → generate → publish.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CreateSurveyWizard scripts={scripts} />
+            </CardContent>
+          </Card>
+
+          <Card className="border-ink-200/70 bg-white/90">
+            <CardHeader>
+              <CardTitle className="text-base">What you can do next</CardTitle>
+              <CardDescription>Where to test and send your survey.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 text-sm text-ink-600">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-4 w-4 text-accent-500" />
+                Generate a narrative script from your brief.
+              </div>
+              <div className="flex items-center gap-3">
+                <FileText className="h-4 w-4 text-accent-500" />
+                Publish a session and create invite links.
+              </div>
+              <div className="flex items-center gap-3">
+                <Users className="h-4 w-4 text-accent-500" />
+                Send invites and monitor completions.
+              </div>
+              <div className="flex items-center gap-3">
+                <Calendar className="h-4 w-4 text-accent-500" />
+                Export results as CSV or PDF.
+              </div>
+            </CardContent>
+          </Card>
         </section>
       </main>
     </div>
   );
 }
 
-const InsightCard = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => (
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2 text-base">
-        {icon}
-        {title}
-      </CardTitle>
-      <CardDescription>{description}</CardDescription>
-    </CardHeader>
-  </Card>
-);
-
-const CreateScriptDialog = ({ scripts }: { scripts: ScriptSummary[] }) => {
-  const [open, setOpen] = useState(false);
-  const [targetScriptId, setTargetScriptId] = useState("new");
-  const [title, setTitle] = useState("");
-  const [json, setJson] = useState("");
-  const [prompt, setPrompt] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const requiresTitle = targetScriptId === "new";
-  const canSubmit = json.trim() && (!requiresTitle || title.trim());
-
-  const scriptTargets = useMemo(
-    () => scripts.map((script) => ({ value: script.id, label: script.title })),
-    [scripts],
-  );
-
-  const handleSubmit = async () => {
-    setError(null);
-    try {
-      const endpoint = targetScriptId === "new"
-        ? "/api/scripts"
-        : `/api/scripts/${targetScriptId}/versions`;
-      await postJson(endpoint, {
-        title,
-        json,
-        promptMarkdown: prompt,
-      });
-      setOpen(false);
-      window.location.reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create script");
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="w-full justify-between">
-          New Script
-          <FileText className="h-4 w-4 text-ink-400" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Create script</DialogTitle>
-          <DialogDescription>Paste a validated interview JSON and optional prompt.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Save to</Label>
-            <Select value={targetScriptId} onValueChange={setTargetScriptId}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="new">Create new script</SelectItem>
-                {scriptTargets.map((script) => (
-                  <SelectItem key={script.value} value={script.value}>
-                    {script.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-ink-500">Selecting an existing script creates a new version.</p>
-          </div>
-          <div className="space-y-2">
-            <Label>Script title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Role Documentation Interview" />
-          </div>
-          <div className="space-y-2">
-            <Label>Interview JSON</Label>
-            <Textarea value={json} onChange={(e) => setJson(e.target.value)} placeholder="{ ... }" />
-          </div>
-          <div className="space-y-2">
-            <Label>Prompt markdown</Label>
-            <Textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="# Narrative prompt" />
-          </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-        </div>
-        <DialogFooter>
-          <Button variant="secondary" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={!canSubmit}>
-            Save script
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-const GenerateScriptDialog = ({ scripts }: { scripts: ScriptSummary[] }) => {
-  const [open, setOpen] = useState(false);
-  const [targetScriptId, setTargetScriptId] = useState("new");
+const CreateSurveyWizard = ({ scripts }: { scripts: ScriptSummary[] }) => {
+  const [step, setStep] = useState(1);
   const [title, setTitle] = useState("");
   const [goal, setGoal] = useState("");
   const [audience, setAudience] = useState("");
   const [notes, setNotes] = useState("");
-  const [provider, setProvider] = useState<SessionSummary["provider"]>("anthropic");
-  const [model, setModel] = useState("claude-sonnet-4-20250514");
+  const [provider, setProvider] = useState<ModelProvider>("anthropic");
+  const [model, setModel] = useState(getDefaultModel("anthropic"));
   const [generated, setGenerated] = useState<{ json: string; prompt: string } | null>(null);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [targetScriptId, setTargetScriptId] = useState("new");
+  const [savedScriptId, setSavedScriptId] = useState<string | null>(null);
+  const [savedVersionId, setSavedVersionId] = useState<string | null>(null);
+  const [sessionTitle, setSessionTitle] = useState("");
+  const [timeLimit, setTimeLimit] = useState("15");
+  const [inviteEmails, setInviteEmails] = useState("");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [inviteTokens, setInviteTokens] = useState<string[]>([]);
+  const [origin, setOrigin] = useState("");
 
   const scriptTargets = useMemo(
     () => scripts.map((script) => ({ value: script.id, label: script.title })),
     [scripts],
   );
 
+  const modelOptions = useMemo(() => MODEL_OPTIONS[provider], [provider]);
+
   useEffect(() => {
-    if (targetScriptId === "new") return;
-    const match = scripts.find((script) => script.id === targetScriptId);
-    if (match && !title.trim()) {
-      setTitle(match.title);
+    if (!modelOptions.find((option) => option.id === model)) {
+      setModel(getDefaultModel(provider));
     }
-  }, [scripts, targetScriptId, title]);
+  }, [model, modelOptions, provider]);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   const handleGenerate = async () => {
     setError(null);
+    setSaving(true);
     try {
       const result = await postJson<{ script: unknown; promptMarkdown: string }>("/api/scripts/generate", {
         title,
@@ -374,231 +260,189 @@ const GenerateScriptDialog = ({ scripts }: { scripts: ScriptSummary[] }) => {
         json: JSON.stringify(result.script, null, 2),
         prompt: result.promptMarkdown ?? "",
       });
+      setStep(2);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleSave = async () => {
+  const handleSaveScript = async () => {
     if (!generated) return;
     setError(null);
+    setSaving(true);
     try {
       const endpoint = targetScriptId === "new"
         ? "/api/scripts"
         : `/api/scripts/${targetScriptId}/versions`;
-      await postJson(endpoint, {
+      const response = await postJson<{ scriptId?: string; versionId: string }>(endpoint, {
         title,
         json: generated.json,
         promptMarkdown: generated.prompt,
       });
-      setOpen(false);
-      window.location.reload();
+      const scriptId = response.scriptId ?? targetScriptId;
+      setSavedScriptId(scriptId);
+      setSavedVersionId(response.versionId);
+      setSessionTitle(`${title || "Survey"} Session`);
+      setStep(3);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(err instanceof Error ? err.message : "Failed to save script");
+    } finally {
+      setSaving(false);
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={(next) => {
-      setOpen(next);
-      if (!next) setGenerated(null);
-    }}>
-      <DialogTrigger asChild>
-        <Button variant="accent" className="w-full justify-between">
-          <Sparkles className="h-4 w-4" />
-          Generate Script
-          <span className="text-xs uppercase tracking-[0.2em] text-ink-900/70">AI</span>
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>Generate a script with AI</DialogTitle>
-          <DialogDescription>Describe the goal and audience, then refine the result.</DialogDescription>
-        </DialogHeader>
-        <Tabs defaultValue="brief">
-          <TabsList>
-            <TabsTrigger value="brief">Brief</TabsTrigger>
-            <TabsTrigger value="result" disabled={!generated}>Result</TabsTrigger>
-          </TabsList>
-          <TabsContent value="brief" className="space-y-4">
-            <div className="space-y-2">
-              <Label>Save to</Label>
-              <Select value={targetScriptId} onValueChange={setTargetScriptId}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="new">Create new script</SelectItem>
-                  {scriptTargets.map((script) => (
-                    <SelectItem key={script.value} value={script.value}>
-                      {script.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-ink-500">Selecting an existing script creates a new version.</p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Script title</Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Onboarding Research" />
-              </div>
-              <div className="space-y-2">
-                <Label>Audience</Label>
-                <Input value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Product team" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Goal</Label>
-              <Textarea value={goal} onChange={(e) => setGoal(e.target.value)} placeholder="Understand friction in onboarding." />
-            </div>
-            <div className="space-y-2">
-              <Label>Notes</Label>
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Tone, constraints, specifics." />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Provider</Label>
-                <Select value={provider} onValueChange={(value) => setProvider(value as SessionSummary["provider"])}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="anthropic">Anthropic</SelectItem>
-                    <SelectItem value="openai">OpenAI</SelectItem>
-                    <SelectItem value="openrouter">OpenRouter</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Model</Label>
-                <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="claude-sonnet-4-20250514" />
-              </div>
-            </div>
-          </TabsContent>
-          <TabsContent value="result" className="space-y-4">
-            {generated && (
-              <>
-                <div className="space-y-2">
-                  <Label>Generated JSON</Label>
-                  <Textarea value={generated.json} onChange={(e) => setGenerated({ ...generated, json: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Prompt markdown</Label>
-                  <Textarea value={generated.prompt} onChange={(e) => setGenerated({ ...generated, prompt: e.target.value })} />
-                </div>
-              </>
-            )}
-          </TabsContent>
-        </Tabs>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <DialogFooter>
-          <Button variant="secondary" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-          {!generated ? (
-            <Button onClick={handleGenerate} disabled={!title || !goal}>
-              Generate
-            </Button>
-          ) : (
-            <Button onClick={handleSave}>Save Script</Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-const CreateSessionDialog = ({ scripts }: { scripts: ScriptSummary[] }) => {
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [scriptVersionId, setScriptVersionId] = useState<string | null>(null);
-  const [timeLimit, setTimeLimit] = useState("15");
-  const [provider, setProvider] = useState<SessionSummary["provider"]>("anthropic");
-  const [model, setModel] = useState("claude-sonnet-4-20250514");
-  const [emails, setEmails] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  const scriptOptions = useMemo(
-    () => scripts.filter((script) => script.active_version_id).map((script) => ({
-      label: script.title,
-      value: script.active_version_id as string,
-    })),
-    [scripts],
-  );
-
-  useEffect(() => {
-    if (!scriptVersionId && scriptOptions[0]) {
-      setScriptVersionId(scriptOptions[0].value);
-    }
-  }, [scriptOptions, scriptVersionId]);
-
-  const handleSubmit = async () => {
+  const handlePublish = async () => {
+    if (!savedVersionId) return;
     setError(null);
+    setSaving(true);
     try {
       const session = await postJson<{ sessionId: string }>("/api/sessions", {
-        title,
-        scriptVersionId,
+        title: sessionTitle || "Survey Session",
+        scriptVersionId: savedVersionId,
         timeLimitMinutes: Number(timeLimit) || 15,
         provider,
         model,
       });
-
-      if (emails.trim()) {
-        const emailList = emails.split(",").map((email) => email.trim()).filter(Boolean);
+      setSessionId(session.sessionId);
+      if (inviteEmails.trim()) {
+        const emailList = inviteEmails.split(",").map((email) => email.trim()).filter(Boolean);
         if (emailList.length) {
-          await postJson(`/api/sessions/${session.sessionId}/invite`, { emails: emailList });
+          const invite = await postJson<{ participants: { invite_token: string }[] }>(
+            `/api/sessions/${session.sessionId}/invite`,
+            { emails: emailList },
+          );
+          setInviteTokens(invite.participants.map((participant) => participant.invite_token));
         }
       }
-      setOpen(false);
-      window.location.reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create session");
+      setError(err instanceof Error ? err.message : "Failed to publish session");
+    } finally {
+      setSaving(false);
     }
   };
 
+  const inviteLink = inviteTokens[0] && origin ? `${origin}/interview/${inviteTokens[0]}` : null;
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="secondary" className="w-full justify-between">
-          <Users className="h-4 w-4" />
-          New Session
-          <span className="text-xs uppercase tracking-[0.2em] text-ink-500">Invite</span>
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create session</DialogTitle>
-          <DialogDescription>Launch a session and invite participants.</DialogDescription>
-        </DialogHeader>
+    <div className="space-y-6">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-ink-400">
+        <span className={step >= 1 ? "text-ink-700" : undefined}>Brief</span>
+        <ArrowRight className="h-3 w-3" />
+        <span className={step >= 2 ? "text-ink-700" : undefined}>Script</span>
+        <ArrowRight className="h-3 w-3" />
+        <span className={step >= 3 ? "text-ink-700" : undefined}>Publish</span>
+      </div>
+
+      {step === 1 && (
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Session title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Onboarding Round 1" />
+            <Label>Survey title</Label>
+            <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Onboarding Experience" />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Audience</Label>
+              <Input value={audience} onChange={(event) => setAudience(event.target.value)} placeholder="New users" />
+            </div>
+            <div className="space-y-2">
+              <Label>Provider</Label>
+              <Select value={provider} onValueChange={(value) => setProvider(value as ModelProvider)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="anthropic">Anthropic</SelectItem>
+                  <SelectItem value="openai">OpenAI</SelectItem>
+                  <SelectItem value="openrouter">OpenRouter</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="space-y-2">
-            <Label>Script</Label>
-            <Select value={scriptVersionId ?? ""} onValueChange={(value) => setScriptVersionId(value)}>
+            <Label>Goal</Label>
+            <Textarea value={goal} onChange={(event) => setGoal(event.target.value)} placeholder="Understand why users drop during onboarding." />
+          </div>
+          <div className="space-y-2">
+            <Label>Notes</Label>
+            <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Tone, constraints, specifics." />
+          </div>
+          <div className="space-y-2">
+            <Label>Model</Label>
+            <Select value={model} onValueChange={setModel}>
               <SelectTrigger>
-                <SelectValue placeholder="Select script" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {scriptOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                {modelOptions.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
                     {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <Button onClick={handleGenerate} disabled={!title || !goal || saving} className="w-full">
+            Generate narrative script
+          </Button>
+        </div>
+      )}
+
+      {step === 2 && generated && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Save to</Label>
+            <Select value={targetScriptId} onValueChange={setTargetScriptId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new">Create new survey</SelectItem>
+                {scriptTargets.map((script) => (
+                  <SelectItem key={script.value} value={script.value}>
+                    {script.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-ink-500">Selecting an existing survey creates a new version.</p>
+          </div>
+          <div className="space-y-2">
+            <Label>Script JSON</Label>
+            <Textarea value={generated.json} onChange={(event) => setGenerated({ ...generated, json: event.target.value })} />
+          </div>
+          <div className="space-y-2">
+            <Label>Prompt markdown</Label>
+            <Textarea value={generated.prompt} onChange={(event) => setGenerated({ ...generated, prompt: event.target.value })} />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setStep(1)}>
+              Back
+            </Button>
+            <Button onClick={handleSaveScript} disabled={saving}>
+              Save script
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Session title</Label>
+            <Input value={sessionTitle} onChange={(event) => setSessionTitle(event.target.value)} />
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Time limit (minutes)</Label>
-              <Input value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} />
+              <Input value={timeLimit} onChange={(event) => setTimeLimit(event.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Provider</Label>
-              <Select value={provider} onValueChange={(value) => setProvider(value as SessionSummary["provider"])}>
+              <Select value={provider} onValueChange={(value) => setProvider(value as ModelProvider)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -612,24 +456,52 @@ const CreateSessionDialog = ({ scripts }: { scripts: ScriptSummary[] }) => {
           </div>
           <div className="space-y-2">
             <Label>Model</Label>
-            <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="claude-sonnet-4-20250514" />
+            <Select value={model} onValueChange={setModel}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {modelOptions.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
-            <Label>Invite emails (comma separated)</Label>
-            <Textarea value={emails} onChange={(e) => setEmails(e.target.value)} placeholder="alex@company.com, jamie@company.com" />
+            <Label>Invite emails</Label>
+            <Textarea value={inviteEmails} onChange={(event) => setInviteEmails(event.target.value)} placeholder="alex@company.com, jamie@company.com" />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
+          {!sessionId ? (
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setStep(2)}>
+                Back
+              </Button>
+              <Button onClick={handlePublish} disabled={saving}>
+                Publish & invite
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3 rounded-xl border border-ink-200 bg-ink-50/70 p-4 text-sm">
+              <p className="font-semibold text-ink-900">Survey is live.</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button asChild size="sm">
+                  <a href={`/sessions/${sessionId}`}>Open session</a>
+                </Button>
+                {inviteLink && (
+                  <Button asChild size="sm" variant="outline">
+                    <a href={inviteLink} target="_blank" rel="noreferrer">Open invite link</a>
+                  </Button>
+                )}
+              </div>
+              {!inviteLink && <p className="text-xs text-ink-500">Add invite emails to generate a participant link.</p>}
+            </div>
+          )}
         </div>
-        <DialogFooter>
-          <Button variant="secondary" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={!title || !scriptVersionId}>
-            Create Session
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      )}
+    </div>
   );
 };
 
@@ -662,14 +534,14 @@ const ScriptVersionsDialog = ({ scriptId }: { scriptId: string }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost">
+        <Button variant="ghost" size="sm">
           <FileText className="h-4 w-4" />
           Versions
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Script versions</DialogTitle>
+          <DialogTitle>Survey versions</DialogTitle>
           <DialogDescription>Rollback to a previous version when needed.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
