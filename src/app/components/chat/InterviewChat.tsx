@@ -26,8 +26,60 @@ type InterviewChatProps = {
   showFinish?: boolean;
 };
 
-const getMessageText = (message: UIMessage) =>
-  message.parts?.map((part) => (part.type === "text" ? part.text : "")).join("") ?? "";
+const getMessageText = (message: UIMessage) => {
+  if ("parts" in message && Array.isArray(message.parts)) {
+    return message.parts
+      .filter((part) => part.type === "text")
+      .map((part) => (part.type === "text" ? part.text : ""))
+      .join("");
+  }
+  if ("content" in message && Array.isArray(message.content)) {
+    return message.content
+      .filter((part: { type: string }) => part.type === "text")
+      .map((part: { type: string; text?: string }) => part.text ?? "")
+      .join("");
+  }
+  return "";
+};
+
+type MessageSegment = { kind: "narrative" | "question"; text: string };
+
+const splitNarrativeAndQuestions = (text: string): MessageSegment[] => {
+  const segments: MessageSegment[] = [];
+  const source = text ?? "";
+  let cursor = 0;
+
+  while (cursor < source.length) {
+    const qIndex = source.indexOf("?", cursor);
+    if (qIndex === -1) break;
+
+    let start = cursor;
+    for (let i = qIndex - 1; i >= cursor; i--) {
+      const char = source[i];
+      if (char === "\n") {
+        start = i + 1;
+        break;
+      }
+      if ((char === "." || char === "!" || char === "?") && /\s/.test(source[i + 1] ?? "")) {
+        start = i + 1;
+        break;
+      }
+    }
+
+    const narrative = source.slice(cursor, start).trim();
+    if (narrative) segments.push({ kind: "narrative", text: narrative });
+
+    const question = source.slice(start, qIndex + 1).trim();
+    if (question) segments.push({ kind: "question", text: question });
+
+    cursor = qIndex + 1;
+  }
+
+  const rest = source.slice(cursor).trim();
+  if (rest) segments.push({ kind: "narrative", text: rest });
+
+  return segments;
+};
 
 export const InterviewChat = ({
   title,
@@ -94,7 +146,20 @@ export const InterviewChat = ({
                             : "inline-block max-w-[80%] rounded-2xl bg-ink-100/80 px-4 py-2 text-sm text-ink-900"
                         }
                       >
-                        {getMessageText(message)}
+                        {message.role !== "user"
+                          ? (
+                            <div className="space-y-2 whitespace-pre-wrap">
+                              {splitNarrativeAndQuestions(getMessageText(message)).map((segment, index) => (
+                                <p
+                                  key={`${message.id}-${index}`}
+                                  className={segment.kind === "question" ? "font-semibold" : ""}
+                                >
+                                  {segment.text}
+                                </p>
+                              ))}
+                            </div>
+                          )
+                          : getMessageText(message)}
                       </div>
                     </div>
                   ))}
