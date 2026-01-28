@@ -7,10 +7,10 @@ import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
 import { ErrorBanner, type ErrorInfo } from "@/app/components/alerts/ErrorBanner";
-import { MODEL_OPTIONS, getDefaultModel, type ModelOption, type ModelProvider } from "@/lib/models";
+import { loadAiSettings } from "@/app/lib/ai-settings";
+import type { ModelProvider } from "@/lib/models";
 import type { ScriptEditorDraft } from "@/lib/editor-types";
 
 const postJson = async <T,>(url: string, body: unknown): Promise<T> => {
@@ -40,10 +40,9 @@ export const SurveysNewPage = () => {
   const [audience, setAudience] = useState("");
   const [goal, setGoal] = useState("");
   const [notes, setNotes] = useState("");
-  const [provider, setProvider] = useState<ModelProvider>("openai");
-  const [model, setModel] = useState(getDefaultModel("openai"));
-  const [modelOptions, setModelOptions] = useState<ModelOption[]>(MODEL_OPTIONS.openai);
-  const [availableProviders, setAvailableProviders] = useState({
+  const [aiProvider, setAiProvider] = useState<ModelProvider>("openai");
+  const [aiModel, setAiModel] = useState<string>("");
+  const [availableProviders, setAvailableProviders] = useState<Record<ModelProvider, boolean>>({
     openai: true,
     anthropic: true,
     openrouter: true,
@@ -52,49 +51,27 @@ export const SurveysNewPage = () => {
   const [error, setError] = useState<ErrorInfo | null>(null);
 
   useEffect(() => {
-    fetch("/api/config")
-      .then((response) => response.json())
-      .then((data) => {
-        const providers = (data as { providers?: typeof availableProviders }).providers;
-        const defaults = (data as { defaults?: { provider?: ModelProvider; model?: string } }).defaults;
-        if (providers) setAvailableProviders(providers);
-        if (defaults?.provider) setProvider(defaults.provider);
-        if (defaults?.model) setModel(defaults.model);
+    loadAiSettings()
+      .then(({ settings, providers }) => {
+        setAiProvider(settings.provider);
+        setAiModel(settings.model);
+        setAvailableProviders(providers);
       })
       .catch(() => null);
   }, []);
-
-  useEffect(() => {
-    fetch(`/api/models/${provider}`)
-      .then((response) => response.json())
-      .then((data) => {
-        const models = (data as { models?: ModelOption[] }).models;
-        if (models?.length) {
-          setModelOptions(models);
-        } else {
-          setModelOptions(MODEL_OPTIONS[provider]);
-        }
-      })
-      .catch(() => setModelOptions(MODEL_OPTIONS[provider]));
-  }, [provider]);
-
-  useEffect(() => {
-    if (!modelOptions.find((option) => option.id === model)) {
-      setModel(getDefaultModel(provider));
-    }
-  }, [model, modelOptions, provider]);
 
   const handleGenerate = async () => {
     setLoading(true);
     setError(null);
     try {
+      const resolved = await loadAiSettings();
       const result = await postJson<{ draft: ScriptEditorDraft; usedFallback?: boolean; warning?: string }>("/api/scripts/generate", {
         title,
         goal,
         audience,
         notes,
-        provider,
-        model,
+        provider: resolved.settings.provider,
+        model: resolved.settings.model,
       });
       const draft = result.draft;
       draft.meta.title = draft.meta.title || title;
@@ -141,6 +118,20 @@ export const SurveysNewPage = () => {
               <span>Publish</span>
             </div>
 
+            <div className="rounded-xl border border-ink-200 bg-ink-50/70 p-4 text-sm text-ink-700">
+              <p className="font-semibold text-ink-900">AI settings</p>
+              <p className="mt-1 text-xs text-ink-600">
+                Using <span className="font-semibold">{aiProvider}</span> ·{" "}
+                <span className="font-semibold">{aiModel || "—"}</span>.{" "}
+                <a href="/settings" className="font-semibold underline underline-offset-4">Change in Settings</a>.
+              </p>
+              {!availableProviders[aiProvider] && (
+                <p className="mt-2 text-xs text-amber-900">
+                  This provider is currently disabled (missing API key). Generation may fall back to a template.
+                </p>
+              )}
+            </div>
+
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Survey title</Label>
@@ -159,25 +150,6 @@ export const SurveysNewPage = () => {
                     placeholder="New users"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Provider</Label>
-                  <Select value={provider} onValueChange={(value) => setProvider(value as ModelProvider)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="anthropic" disabled={!availableProviders.anthropic}>
-                      Anthropic
-                    </SelectItem>
-                    <SelectItem value="openai" disabled={!availableProviders.openai}>
-                      OpenAI
-                    </SelectItem>
-                    <SelectItem value="openrouter" disabled={!availableProviders.openrouter}>
-                      OpenRouter
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               </div>
               <div className="space-y-2">
                 <Label>Goal</Label>
@@ -194,21 +166,6 @@ export const SurveysNewPage = () => {
                   onChange={(event) => setNotes(event.target.value)}
                   placeholder="Tone, constraints, specifics."
                 />
-              </div>
-              <div className="space-y-2">
-                <Label>Model</Label>
-                <Select value={model} onValueChange={setModel}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {modelOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
               <ErrorBanner error={error} />
               <Button onClick={handleGenerate} disabled={!title || !goal || loading} className="w-full">
