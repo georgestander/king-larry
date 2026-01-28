@@ -87,7 +87,7 @@ export default function Dashboard({ scripts, sessions }: DashboardProps) {
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.35em] text-ink-400">Narrative Interviewer</p>
-              <h1 className="text-3xl font-semibold text-ink-950">Survey Studio</h1>
+              <h1 className="text-3xl font-semibold text-ink-950">King Larry</h1>
             </div>
           </div>
           <div className="hidden items-center gap-3 md:flex">
