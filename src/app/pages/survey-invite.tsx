@@ -1,11 +1,12 @@
 "use server";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { SurveyTopBar } from "@/app/components/builder/SurveyTopBar";
 import { buildSurveySteps } from "@/app/components/builder/steps";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { SurveyInviteClient } from "@/app/pages/survey-invite-client";
 import { getActiveScriptVersion, getScript, listScriptVersions, listSessionsByScriptId } from "@/server/store";
 
-export const SurveyOverviewPage = async ({ params }: { params: { id: string } }) => {
+export const SurveyInvitePage = async ({ params }: { params: { id: string } }) => {
   const [script, versions, runs] = await Promise.all([
     getScript(params.id),
     listScriptVersions(params.id),
@@ -23,12 +24,24 @@ export const SurveyOverviewPage = async ({ params }: { params: { id: string } })
   const activeVersion = await getActiveScriptVersion(script.id);
   const steps = buildSurveySteps({
     surveyId: script.id,
-    activeStep: "brief",
+    activeStep: "invite",
     hasScript: versions.length > 0,
     hasPreview: Boolean(activeVersion?.preview_transcript_json),
     hasRuns: runs.length > 0,
     hasInvites: runs.some((run) => (run.sent_count ?? 0) > 0),
   });
+
+  const inviteRun = runs.find((run) => run.status === "active") ?? runs[0] ?? null;
+  const initialMetrics = inviteRun
+    ? {
+      sent: inviteRun.sent_count ?? 0,
+      started: inviteRun.started_count ?? 0,
+      completed: inviteRun.completed_count ?? 0,
+      completionRate: (inviteRun.sent_count ?? 0)
+        ? Math.round(((inviteRun.completed_count ?? 0) / (inviteRun.sent_count ?? 1)) * 100)
+        : 0,
+    }
+    : null;
 
   return (
     <div className="space-y-6">
@@ -54,42 +67,25 @@ export const SurveyOverviewPage = async ({ params }: { params: { id: string } })
         }))}
       />
 
-      <Card className="border-ink-200/70 bg-white/95">
-        <CardHeader>
-          <CardTitle className="text-xl">Brief</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-ink-600">
-          <p>Capture your survey brief and move into the script editor.</p>
-          <div className="flex flex-wrap gap-2">
-            <a
-              className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-ink-50"
-              href={`/surveys/${script.id}/script`}
-            >
-              Open script editor
-            </a>
-            <a
-              className="rounded-lg border border-ink-200 px-4 py-2 text-sm font-semibold text-ink-900"
-              href={`/surveys/${script.id}/test`}
-            >
-              Test chat
-            </a>
-            <a
-              className="rounded-lg border border-ink-200 px-4 py-2 text-sm font-semibold text-ink-900"
-              href={`/surveys/${script.id}/publish`}
-            >
-              Publish run
-            </a>
-            {runs.length > 0 && (
-              <a
-                className="rounded-lg border border-ink-200 px-4 py-2 text-sm font-semibold text-ink-900"
-                href={`/surveys/${script.id}/invite`}
-              >
-                Invite participants
-              </a>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {inviteRun && initialMetrics ? (
+        <SurveyInviteClient
+          scriptId={script.id}
+          sessionId={inviteRun.id}
+          sessionTitle={inviteRun.title}
+          initialMetrics={initialMetrics}
+        />
+      ) : (
+        <Card className="border-ink-200/70 bg-white/95">
+          <CardHeader>
+            <CardTitle>Publish a run first</CardTitle>
+            <CardDescription>Invite links are created for a published run.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-ink-600">
+            Go to <a href={`/surveys/${script.id}/publish`} className="font-semibold underline underline-offset-4">Publish</a> to create a run, then come back here.
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
+

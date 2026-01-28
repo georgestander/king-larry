@@ -1,7 +1,7 @@
 export type SurveyStepStatus = "complete" | "current" | "upcoming";
 
 export type SurveyStep = {
-  id: "brief" | "script" | "test" | "publish" | "results";
+  id: "brief" | "script" | "test" | "publish" | "invite" | "results";
   label: string;
   href: string;
   status: SurveyStepStatus;
@@ -13,6 +13,7 @@ type BuildStepsInput = {
   hasScript: boolean;
   hasPreview: boolean;
   hasRuns: boolean;
+  hasInvites: boolean;
 };
 
 export const buildSurveySteps = ({
@@ -21,13 +22,19 @@ export const buildSurveySteps = ({
   hasScript,
   hasPreview,
   hasRuns,
+  hasInvites,
 }: BuildStepsInput): SurveyStep[] => {
-  const order: SurveyStep["id"][] = ["brief", "script", "publish", "test", "results"];
+  const order: SurveyStep["id"][] = ["brief", "script", "test", "publish", "invite", "results"];
+  const activeIndex = Math.max(order.indexOf(activeStep), 0);
+  const isPast = (step: SurveyStep["id"]) => order.indexOf(step) < activeIndex;
+
   const isComplete = (step: SurveyStep["id"]) => {
+    if (isPast(step)) return true;
     if (step === "brief") return hasScript;
     if (step === "script") return hasScript;
+    if (step === "test") return hasPreview;
     if (step === "publish") return hasRuns;
-    if (step === "test") return hasRuns && (hasPreview || activeStep === "results");
+    if (step === "invite") return hasInvites;
     if (step === "results") return hasRuns;
     return false;
   };
@@ -45,9 +52,11 @@ export const buildSurveySteps = ({
         ? `${hrefBase}/test`
         : step === "publish"
           ? `${hrefBase}/publish`
-          : step === "results"
-            ? `${hrefBase}/runs`
-            : hrefBase;
+          : step === "invite"
+            ? `${hrefBase}/invite`
+            : step === "results"
+              ? `${hrefBase}/runs`
+              : hrefBase;
     const label = step === "brief"
       ? "Brief"
       : step === "script"
@@ -55,8 +64,10 @@ export const buildSurveySteps = ({
         : step === "test"
           ? "Test chat"
           : step === "publish"
-            ? "Publish & invite"
-            : "Results";
+            ? "Publish"
+            : step === "invite"
+              ? "Invite"
+              : "Results";
     return {
       id: step,
       label,

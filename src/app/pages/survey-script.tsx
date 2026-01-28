@@ -29,6 +29,7 @@ export const SurveyScriptPage = async ({ params }: { params: { id: string } }) =
     hasScript: versions.length > 0,
     hasPreview: Boolean(activeVersion?.preview_transcript_json),
     hasRuns: runs.length > 0,
+    hasInvites: runs.some((run) => (run.sent_count ?? 0) > 0),
   });
 
   const hasRuns = runs.length > 0;
@@ -86,7 +87,7 @@ export const SurveyScriptPage = async ({ params }: { params: { id: string } }) =
             : "Editing creates a new script version. Existing runs won’t change. Publishing a new run will split results.",
           actions: [
             { label: "View results", href: `/surveys/${script.id}/runs`, variant: "outline" },
-            { label: "Publish & invite", href: `/surveys/${script.id}/publish`, variant: "ghost" },
+            { label: "Invite participants", href: `/surveys/${script.id}/invite`, variant: "ghost" },
           ],
         } : undefined}
       />

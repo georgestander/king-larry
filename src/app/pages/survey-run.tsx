@@ -40,6 +40,7 @@ export const SurveyRunPage = async ({ params }: { params: { id: string; runId: s
     hasScript: versions.length > 0,
     hasPreview: Boolean(activeVersion?.preview_transcript_json),
     hasRuns: runs.length > 0,
+    hasInvites: runs.some((run) => (run.sent_count ?? 0) > 0),
   });
 
   const { session, participants } = summary;

@@ -104,7 +104,7 @@ export const SurveysNewPage = () => {
       <Card className="border-ink-200/70 bg-white/95">
         <CardHeader>
           <CardTitle>Create a new survey</CardTitle>
-          <CardDescription>Brief → Script → Test → Publish</CardDescription>
+          <CardDescription>Brief → Script → Test → Publish → Invite → Results</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-ink-400">
@@ -112,9 +112,11 @@ export const SurveysNewPage = () => {
             <ArrowRight className="h-3 w-3" />
             <span>Script</span>
             <ArrowRight className="h-3 w-3" />
+            <span>Test</span>
+            <ArrowRight className="h-3 w-3" />
             <span>Publish</span>
             <ArrowRight className="h-3 w-3" />
-            <span>Test</span>
+            <span>Invite</span>
             <ArrowRight className="h-3 w-3" />
             <span>Results</span>
           </div>

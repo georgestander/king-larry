@@ -28,6 +28,7 @@ export const SurveyRunsPage = async ({ params }: { params: { id: string } }) => 
     hasScript: versions.length > 0,
     hasPreview: Boolean(activeVersion?.preview_transcript_json),
     hasRuns: runs.length > 0,
+    hasInvites: runs.some((run) => (run.sent_count ?? 0) > 0),
   });
 
   const formatTimestamp = (value: string) =>

@@ -14,15 +14,15 @@ export const StudioLayout = async ({ children, requestInfo }: LayoutProps) => {
 
   return (
     <div className="min-h-screen bg-ink-50 text-ink-950 [background-image:radial-gradient(1200px_circle_at_top,_rgba(255,255,255,0.9),_transparent)]">
-      <header className="border-b border-ink-200/60 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6 px-6 py-8">
+      <header className="sticky top-0 z-30 border-b border-ink-200/60 bg-white/80 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6 px-6 py-5">
           <a href="/surveys" className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-full border border-ink-200 bg-white">
               <img src="/logo.png" alt="Narrative Interviewer" className="h-10 w-10" />
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.35em] text-ink-400">Narrative Interviewer</p>
-              <h1 className="text-3xl font-semibold text-ink-950">Survey Studio</h1>
+              <h1 className="text-3xl font-semibold text-ink-950">King Larry</h1>
             </div>
           </a>
           <div className="flex items-center gap-3">
@@ -35,7 +35,7 @@ export const StudioLayout = async ({ children, requestInfo }: LayoutProps) => {
       </header>
 
       <main className="mx-auto flex max-w-6xl gap-6 px-6 py-8">
-        <aside className="w-full max-w-[280px] space-y-4">
+        <aside className="sticky top-24 w-full max-w-[280px] space-y-4 self-start">
           <Card className="border-ink-200/70 bg-white/95">
             <CardHeader>
               <CardTitle className="text-base">Quick actions</CardTitle>
@@ -95,4 +95,3 @@ export const StudioLayout = async ({ children, requestInfo }: LayoutProps) => {
     </div>
   );
 };
-

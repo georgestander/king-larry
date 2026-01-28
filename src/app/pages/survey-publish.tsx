@@ -29,6 +29,7 @@ export const SurveyPublishPage = async ({ params }: { params: { id: string } }) 
     hasScript: versions.length > 0,
     hasPreview: Boolean(activeVersion?.preview_transcript_json),
     hasRuns: runs.length > 0,
+    hasInvites: runs.some((run) => (run.sent_count ?? 0) > 0),
   });
 
   const latestRunWithResponses = runs.find((run) => (run.started_count ?? 0) > 0 || (run.completed_count ?? 0) > 0) ?? null;

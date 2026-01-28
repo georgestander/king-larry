@@ -2,9 +2,10 @@
 
 import { buildSurveySteps } from "@/app/components/builder/steps";
 import { SurveyTopBar } from "@/app/components/builder/SurveyTopBar";
-import { SurveyTestPublishedClient } from "@/app/pages/survey-test-published-client";
-import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { SurveyTestClient } from "@/app/pages/survey-test-client";
+import { defaultInterviewTemplate, defaultPrompt } from "@/data/default-script";
+import { editorDraftFromInterview } from "@/lib/editor-to-interview";
 import { getActiveScriptVersion, getScript, listScriptVersions, listSessionsByScriptId } from "@/server/store";
 
 export const SurveyTestPage = async ({ params }: { params: { id: string } }) => {
@@ -29,9 +30,30 @@ export const SurveyTestPage = async ({ params }: { params: { id: string } }) => 
     hasScript: versions.length > 0,
     hasPreview: Boolean(activeVersion?.preview_transcript_json),
     hasRuns: runs.length > 0,
+    hasInvites: runs.some((run) => (run.sent_count ?? 0) > 0),
   });
 
-  const testRun = runs.find((run) => run.status === "active") ?? runs[0] ?? null;
+  let draft = editorDraftFromInterview(defaultInterviewTemplate);
+  draft.meta.title = script.title;
+  draft.promptMarkdown = defaultPrompt.trim();
+
+  if (activeVersion?.editor_json) {
+    try {
+      draft = JSON.parse(activeVersion.editor_json) as typeof draft;
+    } catch {
+      draft = draft;
+    }
+  } else if (activeVersion?.json) {
+    try {
+      const parsed = JSON.parse(activeVersion.json);
+      draft = editorDraftFromInterview(parsed);
+    } catch {
+      draft = draft;
+    }
+  }
+
+  draft.meta.title = script.title;
+  draft.promptMarkdown = defaultPrompt.trim();
 
   return (
     <div className="space-y-6">
@@ -57,23 +79,18 @@ export const SurveyTestPage = async ({ params }: { params: { id: string } }) => 
         }))}
       />
 
-      {testRun ? (
-        <SurveyTestPublishedClient sessionId={testRun.id} />
-      ) : (
+      {!activeVersion ? (
         <Card className="border-ink-200/70 bg-white/95">
           <CardHeader>
-            <CardTitle>Publish first</CardTitle>
-            <CardDescription>
-              Testing uses a real invite link so the UI and behavior match what respondents see.
-            </CardDescription>
+            <CardTitle>Save a script first</CardTitle>
+            <CardDescription>Testing uses the active script version.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-ink-600">
-            <p>Publish a run to generate invite links and start a test interview.</p>
-            <Button asChild>
-              <a href={`/surveys/${script.id}/publish`}>Go to Publish & invite</a>
-            </Button>
+          <CardContent className="text-sm text-ink-600">
+            Save your script changes, then come back to test.
           </CardContent>
         </Card>
+      ) : (
+        <SurveyTestClient draft={draft} timeLimitMinutes={15} />
       )}
     </div>
   );
