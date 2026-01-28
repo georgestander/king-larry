@@ -1,10 +1,11 @@
-import { except, render, route } from "rwsdk/router";
+import { except, layout, render, route } from "rwsdk/router";
 import { defineApp } from "rwsdk/worker";
 
 import { apiRoutes } from "@/app/api/routes";
 import { Document } from "@/app/document";
 import { setCommonHeaders } from "@/app/headers";
 import { logRequests } from "@/app/logging";
+import { StudioLayout } from "@/app/layouts/StudioLayout";
 import { SurveysPage } from "@/app/pages/surveys";
 import { SurveysNewPage } from "@/app/pages/surveys-new";
 import { SettingsPage } from "@/app/pages/settings";
@@ -32,10 +33,12 @@ export default defineApp([
   },
   ...apiRoutes,
   render(Document, [
-    route("/", SurveysPage),
-    route("/surveys", SurveysPage),
+    layout(StudioLayout, [
+      route("/", SurveysPage),
+      route("/surveys", SurveysPage),
+      route("/settings", SettingsPage),
+    ]),
     route("/surveys/new", SurveysNewPage),
-    route("/settings", SettingsPage),
     route("/surveys/:id", SurveyOverviewPage),
     route("/surveys/:id/script", SurveyScriptPage),
     route("/surveys/:id/test", SurveyTestPage),
