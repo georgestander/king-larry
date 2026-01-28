@@ -1,24 +1,42 @@
-# RedwoodSDK Minimal Starter
+# Narrative Interviewer
 
-This is the starter project for RedwoodSDK. It's a template designed to get you up and running as quickly as possible.
+LLM-powered interview and survey platform for narrative, time-boxed research sessions. Built on RedwoodSDK + Cloudflare Workers with Vercel AI SDK, shadcn/ui, Tailwind, and Lucide.
 
-Create your new project:
-
-```shell
-npx create-rwsdk my-project-name
-cd my-project-name
-npm install
-```
-
-## Running the dev server
+## Getting Started
 
 ```shell
-npm run dev
+pnpm install
+cp .env.example .env
+pnpm generate
+pnpm dev
 ```
 
-Point your browser to the URL displayed in the terminal (e.g. `http://localhost:5173/`). You should see the RedwoodSDK welcome page in your browser.
+Open `http://localhost:5173/` to access the dashboard.
 
-## Further Reading
+## AI Providers
 
-- [RedwoodSDK Documentation](https://docs.rwsdk.com/)
-- [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers)
+Set one or more provider keys in `.env`:
+
+- `AI_PROVIDER`: `openai` | `anthropic` | `openrouter` (defaults to Anthropic)
+- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`
+- Optional model overrides: `OPENAI_MODEL`, `ANTHROPIC_MODEL`, `OPENROUTER_MODEL`
+
+## Core Flows
+
+- **Scripts**: Generate or author interview JSON, save versions, and rollback.
+- **Sessions**: Create a session, invite participants, track completion.
+- **Interviews**: Participants follow the invite link for a narrative chat.
+- **Exports**: Download session transcripts as CSV or PDF.
+
+## Commands
+
+- `pnpm dev`: local dev server
+- `pnpm dev:init`: RedwoodSDK dev bootstrap
+- `pnpm test`: unit tests
+- `pnpm check`: generate types + TypeScript check
+- `pnpm build`: production build
+
+## References
+
+- RedwoodSDK: `https://docs.rwsdk.com/`
+- Vercel AI SDK: `https://ai-sdk.dev/`
