@@ -57,6 +57,70 @@ export const listScripts = async () => {
     .execute();
 };
 
+export const listSurveySummaries = async () => {
+  const db = getDb();
+  const rows = await db
+    .selectFrom("scripts")
+    .select([
+      "scripts.id",
+      "scripts.title",
+      "scripts.created_at",
+      "scripts.active_version_id",
+    ])
+    .select((eb) => [
+      eb
+        .selectFrom("script_versions")
+        .select(eb.fn.countAll().as("version_count"))
+        .whereRef("script_versions.script_id", "=", "scripts.id")
+        .as("version_count"),
+      eb
+        .selectFrom("script_versions")
+        .select(eb.fn.max("created_at").as("last_updated_at"))
+        .whereRef("script_versions.script_id", "=", "scripts.id")
+        .as("last_updated_at"),
+      eb
+        .selectFrom("sessions")
+        .innerJoin("script_versions", "script_versions.id", "sessions.script_version_id")
+        .select(eb.fn.countAll().as("run_count"))
+        .whereRef("script_versions.script_id", "=", "scripts.id")
+        .as("run_count"),
+      eb
+        .selectFrom("sessions")
+        .innerJoin("script_versions", "script_versions.id", "sessions.script_version_id")
+        .select(eb.fn.countAll().as("active_run_count"))
+        .whereRef("script_versions.script_id", "=", "scripts.id")
+        .where("sessions.status", "=", "active")
+        .as("active_run_count"),
+      eb
+        .selectFrom("participants")
+        .innerJoin("sessions", "sessions.id", "participants.session_id")
+        .innerJoin("script_versions", "script_versions.id", "sessions.script_version_id")
+        .select(eb.fn.countAll().as("sent_count"))
+        .whereRef("script_versions.script_id", "=", "scripts.id")
+        .as("sent_count"),
+      eb
+        .selectFrom("participants")
+        .innerJoin("sessions", "sessions.id", "participants.session_id")
+        .innerJoin("script_versions", "script_versions.id", "sessions.script_version_id")
+        .select(eb.fn.countAll().as("completed_count"))
+        .whereRef("script_versions.script_id", "=", "scripts.id")
+        .where("participants.status", "=", "completed")
+        .as("completed_count"),
+    ])
+    .orderBy("scripts.created_at", "desc")
+    .execute();
+
+  return rows.map((row) => ({
+    ...row,
+    version_count: Number(row.version_count ?? 0),
+    run_count: Number(row.run_count ?? 0),
+    active_run_count: Number(row.active_run_count ?? 0),
+    sent_count: Number(row.sent_count ?? 0),
+    completed_count: Number(row.completed_count ?? 0),
+    last_updated_at: row.last_updated_at ?? row.created_at,
+  }));
+};
+
 export const getScript = async (scriptId: string) => {
   const db = getDb();
   return db.selectFrom("scripts").selectAll().where("id", "=", scriptId).executeTakeFirst() ?? null;

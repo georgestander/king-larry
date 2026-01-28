@@ -4,7 +4,7 @@ import { defineApp } from "rwsdk/worker";
 import { apiRoutes } from "@/app/api/routes";
 import { Document } from "@/app/document";
 import { setCommonHeaders } from "@/app/headers";
-import { Home } from "@/app/pages/home";
+import { SurveysPage } from "@/app/pages/surveys";
 import { SessionPage } from "@/app/pages/session";
 import { InterviewPage } from "@/app/pages/interview";
 
@@ -18,7 +18,8 @@ export default defineApp([
   },
   ...apiRoutes,
   render(Document, [
-    route("/", Home),
+    route("/", SurveysPage),
+    route("/surveys", SurveysPage),
     route("/sessions/:id", SessionPage),
     route("/interview/:token", InterviewPage),
   ]),
