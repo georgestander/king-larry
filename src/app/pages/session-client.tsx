@@ -47,7 +47,7 @@ export const InviteMoreDialog = ({ sessionId }: { sessionId: string }) => {
       setOpen(false);
       window.location.reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send invites.");
+      setError(err instanceof Error ? err.message : "Failed to create invite links.");
     } finally {
       setSaving(false);
     }
@@ -63,7 +63,9 @@ export const InviteMoreDialog = ({ sessionId }: { sessionId: string }) => {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Invite participants</DialogTitle>
-          <DialogDescription>Add comma-separated emails to create invite links.</DialogDescription>
+          <DialogDescription>
+            Add comma-separated emails to create invite links (you’ll copy/share them — no automatic email sending yet).
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-2">
@@ -81,7 +83,7 @@ export const InviteMoreDialog = ({ sessionId }: { sessionId: string }) => {
             Cancel
           </Button>
           <Button onClick={handleInvite} disabled={saving}>
-            Send invites
+            Create invite links
           </Button>
         </DialogFooter>
       </DialogContent>

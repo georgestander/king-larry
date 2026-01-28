@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Sparkles } from "lucide-react";
+import { Copy, Mail, Sparkles } from "lucide-react";
 
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -23,6 +23,12 @@ type Participant = {
   invite_token: string;
   status: "invited" | "started" | "completed";
   email: string | null;
+};
+
+type InviteLink = {
+  token: string;
+  label: string;
+  email?: string | null;
 };
 
 const postJson = async <T,>(url: string, body: unknown): Promise<T> => {
@@ -55,9 +61,10 @@ const summarizeParticipants = (participants: Participant[]) => {
   return { sent, started, completed, completionRate };
 };
 
-const InviteLinkRow = ({ token }: { token: string }) => {
+const InviteLinkRow = ({ token, label, email, subject }: InviteLink & { subject: string }) => {
   const [origin, setOrigin] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copiedMessage, setCopiedMessage] = useState(false);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -65,24 +72,47 @@ const InviteLinkRow = ({ token }: { token: string }) => {
 
   const inviteUrl = origin ? `${origin}/interview/${token}` : `/interview/${token}`;
 
+  const inviteMessage = `Hi,\n\nYou’re invited to a short interview: ${subject}.\n\nOpen this link to start:\n${inviteUrl}\n\nThanks!`;
+  const mailtoLink = email
+    ? `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(`Interview invite: ${subject}`)}&body=${encodeURIComponent(inviteMessage)}`
+    : null;
+
   const handleCopy = async () => {
     await navigator.clipboard.writeText(inviteUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const handleCopyMessage = async () => {
+    await navigator.clipboard.writeText(inviteMessage);
+    setCopiedMessage(true);
+    setTimeout(() => setCopiedMessage(false), 1500);
+  };
+
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs">
-      <Input readOnly value={inviteUrl} className="h-8 max-w-[260px] text-xs" />
-      <Button size="sm" variant="outline" onClick={handleCopy}>
-        <Copy className="mr-1 h-3.5 w-3.5" />
-        {copied ? "Copied" : "Copy"}
-      </Button>
-      <Button size="sm" variant="ghost" asChild>
-        <a href={inviteUrl} target="_blank" rel="noreferrer">
-          Open
-        </a>
-      </Button>
+    <div className="rounded-xl border border-ink-200/60 bg-white/95 p-3">
+      <p className="text-xs font-semibold text-ink-900">{label}</p>
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+        <Input readOnly value={inviteUrl} className="h-8 max-w-[320px] text-xs" />
+        <Button size="sm" variant="outline" onClick={handleCopy}>
+          <Copy className="mr-1 h-3.5 w-3.5" />
+          {copied ? "Copied" : "Copy link"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={handleCopyMessage}>
+          <Mail className="mr-1 h-3.5 w-3.5" />
+          {copiedMessage ? "Copied" : "Copy message"}
+        </Button>
+        <Button size="sm" variant="ghost" asChild>
+          <a href={inviteUrl} target="_blank" rel="noreferrer">
+            Open
+          </a>
+        </Button>
+        {mailtoLink && (
+          <Button size="sm" variant="ghost" asChild>
+            <a href={mailtoLink}>Email</a>
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
@@ -101,10 +131,11 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
   const [inviteEmails, setInviteEmails] = useState("");
   const [anonymousCount, setAnonymousCount] = useState("0");
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [inviteTokens, setInviteTokens] = useState<string[]>([]);
+  const [inviteLinks, setInviteLinks] = useState<InviteLink[]>([]);
   const [metrics, setMetrics] = useState<{ sent: number; started: number; completed: number; completionRate: number } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<ErrorInfo | null>(null);
+  const [inviteNotice, setInviteNotice] = useState(false);
 
   useEffect(() => {
     fetch("/api/config")
@@ -183,15 +214,20 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
     if (!sessionId) return;
     setSaving(true);
     setError(null);
+    setInviteNotice(false);
     try {
-      const tokens: string[] = [];
+      const nextLinks: InviteLink[] = [];
       const emails = inviteEmails.split(",").map((email) => email.trim()).filter(Boolean);
       if (emails.length) {
         const invite = await postJson<{ participants: Participant[] }>(
           `/api/sessions/${sessionId}/invite`,
           { emails },
         );
-        tokens.push(...invite.participants.map((participant) => participant.invite_token));
+        nextLinks.push(...invite.participants.map((participant) => ({
+          token: participant.invite_token,
+          label: participant.email ?? "Participant",
+          email: participant.email,
+        })));
       }
 
       const count = Number(anonymousCount) || 0;
@@ -200,11 +236,21 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
           `/api/sessions/${sessionId}/invite-anonymous`,
           { count },
         );
-        tokens.push(...invite.participants.map((participant) => participant.invite_token));
+        const startIndex = inviteLinks.filter((link) => !link.email).length;
+        nextLinks.push(...invite.participants.map((participant, idx) => ({
+          token: participant.invite_token,
+          label: `Anonymous link #${startIndex + idx + 1}`,
+          email: null,
+        })));
       }
 
-      if (tokens.length) {
-        setInviteTokens((prev) => [...prev, ...tokens]);
+      if (nextLinks.length) {
+        setInviteLinks((prev) => {
+          const existing = new Set(prev.map((link) => link.token));
+          const deduped = nextLinks.filter((link) => !existing.has(link.token));
+          return [...prev, ...deduped];
+        });
+        setInviteNotice(true);
       }
       await refreshMetrics(sessionId);
     } catch (err) {
@@ -219,6 +265,34 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
       } else {
         setError({ message: "Failed to invite" });
       }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateTestLink = async () => {
+    if (!sessionId) return;
+    setSaving(true);
+    setError(null);
+    setInviteNotice(false);
+    try {
+      const invite = await postJson<{ participants: Participant[] }>(
+        `/api/sessions/${sessionId}/invite-anonymous`,
+        { count: 1 },
+      );
+      const token = invite.participants[0]?.invite_token;
+      if (token) {
+        setInviteLinks((prev) => {
+          const existing = new Set(prev.map((link) => link.token));
+          if (existing.has(token)) return prev;
+          return [...prev, { token, label: "Test link (anonymous)" }];
+        });
+        setInviteNotice(true);
+        window.open(`${window.location.origin}/interview/${token}`, "_blank", "noreferrer");
+      }
+      await refreshMetrics(sessionId);
+    } catch (err) {
+      setError({ message: err instanceof Error ? err.message : "Failed to create test link" });
     } finally {
       setSaving(false);
     }
@@ -294,11 +368,26 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
         <Card className="border-ink-200/70 bg-white/95">
           <CardHeader>
             <CardTitle>Invite participants</CardTitle>
-            <CardDescription>Generate links for emails or anonymous shares.</CardDescription>
+            <CardDescription>
+              This MVP generates invite links. It does not send emails automatically — copy/share links via Slack/email.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="rounded-xl border border-ink-200 bg-ink-50/70 p-4 text-sm text-ink-700">
+              <p className="font-semibold text-ink-900">Send invites in 2 steps</p>
+              <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-ink-600">
+                <li>Generate invite links (below).</li>
+                <li>Copy a link (or message) and send it to the participant.</li>
+              </ol>
+              <div className="mt-3">
+                <Button size="sm" variant="secondary" onClick={handleCreateTestLink} disabled={saving}>
+                  Create & open a test link
+                </Button>
+              </div>
+            </div>
             <div className="space-y-2">
-              <Label>Invite emails (comma-separated)</Label>
+              <Label>Emails to generate links for (comma-separated)</Label>
+              <p className="text-xs text-ink-500">We won’t email them automatically. Emails are used only to label invite links.</p>
               <Textarea
                 value={inviteEmails}
                 onChange={(event) => setInviteEmails(event.target.value)}
@@ -306,16 +395,16 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
               />
             </div>
             <div className="space-y-2">
-              <Label>Anonymous links</Label>
+              <Label>Anonymous links (no email)</Label>
               <Input value={anonymousCount} onChange={(event) => setAnonymousCount(event.target.value)} />
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"
                 onClick={handleInvites}
-                disabled={saving}
+                disabled={saving || (!inviteEmails.trim() && (Number(anonymousCount) || 0) < 1)}
               >
-                Generate invites
+                Generate invite links
               </Button>
               <Button asChild variant="outline">
                 <a href={`/api/sessions/${sessionId}/export.csv`}>Export CSV</a>
@@ -324,12 +413,23 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
                 <a href={`/surveys/${scriptId}/runs/${sessionId}`}>View results</a>
               </Button>
             </div>
-            {inviteTokens.length > 0 && (
+            {inviteNotice && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-sm text-emerald-950">
+                Invite links created. Copy a link (or message) and send it to participants.
+              </div>
+            )}
+            {inviteLinks.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs uppercase tracking-[0.3em] text-ink-400">Invite links</p>
                 <div className="space-y-2">
-                  {inviteTokens.map((token) => (
-                    <InviteLinkRow key={token} token={token} />
+                  {inviteLinks.map((link) => (
+                    <InviteLinkRow
+                      key={link.token}
+                      token={link.token}
+                      label={link.label}
+                      email={link.email}
+                      subject={sessionTitle}
+                    />
                   ))}
                 </div>
               </div>
