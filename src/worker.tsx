@@ -1,9 +1,10 @@
-import { render, route } from "rwsdk/router";
+import { except, render, route } from "rwsdk/router";
 import { defineApp } from "rwsdk/worker";
 
 import { apiRoutes } from "@/app/api/routes";
 import { Document } from "@/app/document";
 import { setCommonHeaders } from "@/app/headers";
+import { logRequests } from "@/app/logging";
 import { SurveysPage } from "@/app/pages/surveys";
 import { SurveysNewPage } from "@/app/pages/surveys-new";
 import { SurveyOverviewPage } from "@/app/pages/survey";
@@ -19,6 +20,11 @@ export type AppContext = {};
 
 export default defineApp([
   setCommonHeaders(),
+  logRequests(),
+  except((error, requestInfo) => {
+    console.error(`[rwsdk] error ${requestInfo.request.method} ${requestInfo.path}`, error);
+    return new Response("Internal Server Error", { status: 500 });
+  }),
   ({ ctx }) => {
     // setup ctx here
     ctx;

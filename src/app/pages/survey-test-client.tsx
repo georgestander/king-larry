@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/ca
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import { ErrorBanner, type ErrorInfo } from "@/app/components/alerts/ErrorBanner";
 import type { ScriptEditorDraft } from "@/lib/editor-types";
 import { MODEL_OPTIONS, getDefaultModel, type ModelOption, type ModelProvider } from "@/lib/models";
 
@@ -52,7 +53,7 @@ export const SurveyTestClient = ({
     [],
   );
 
-  const { messages, sendMessage, status, setMessages } = useChat({ transport });
+  const { messages, sendMessage, status, setMessages, error } = useChat({ transport });
   const isLoading = status === "streaming" || status === "submitted";
 
   useEffect(() => {
@@ -114,17 +115,21 @@ export const SurveyTestClient = ({
     if (!startedAt) setStartedAt(Date.now());
     const message = input.trim();
     setInput("");
-    await sendMessage(
-      { text: message },
-      {
-        body: {
-          provider,
-          model,
-          timeLimitMinutes: Number(timeLimit) || 15,
-          draft,
+    try {
+      await sendMessage(
+        { text: message },
+        {
+          body: {
+            provider,
+            model,
+            timeLimitMinutes: Number(timeLimit) || 15,
+            draft,
+          },
         },
-      },
-    );
+      );
+    } catch {
+      // useChat error will surface via `error`
+    }
   };
 
   const handleReset = async () => {
@@ -150,13 +155,17 @@ export const SurveyTestClient = ({
     }
   };
 
+  const uiError: ErrorInfo | null = error
+    ? { message: error.message }
+    : null;
+
   return (
     <div className="space-y-6">
       <Card className="border-ink-200/70 bg-white/95">
         <CardHeader className="flex-row items-center justify-between gap-4">
           <div>
             <CardTitle className="text-lg">Preview settings</CardTitle>
-            <p className="text-sm text-ink-500">Test the exact respondent experience.</p>
+            <p className="text-sm text-ink-500">Test the exact respondent experience. Start and send a message to see the AI reply.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => saveTranscript(messages)} disabled={saving}>
@@ -213,6 +222,8 @@ export const SurveyTestClient = ({
           )}
         </CardContent>
       </Card>
+
+      <ErrorBanner error={uiError} />
 
       <InterviewChat
         title={draft.meta.title}

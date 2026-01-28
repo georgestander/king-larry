@@ -31,6 +31,12 @@ export const handlePreviewChat = async (request: Request) => {
     return errorResponse(422, "Draft failed validation", validation.errors);
   }
 
+  console.log("[preview] request", {
+    provider: body.provider,
+    model: body.model,
+    messageCount: body.messages?.length ?? 0,
+  });
+
   if (isMockAiEnabled()) {
     const stream = new ReadableStream<string>({
       start(controller) {

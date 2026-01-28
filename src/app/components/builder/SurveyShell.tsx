@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, Circle, ArrowRight, ChevronDown } from "lucide-react";
 
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -58,9 +58,61 @@ export const SurveyShell = ({
     () => steps.find((step) => step.status === "current"),
     [steps],
   );
+  const currentIndex = useMemo(
+    () => steps.findIndex((step) => step.status === "current"),
+    [steps],
+  );
+  const nextStep = currentIndex >= 0 ? steps[currentIndex + 1] : undefined;
+  const completedCount = useMemo(
+    () => steps.filter((step) => step.status === "complete").length,
+    [steps],
+  );
+  const progressPercent = steps.length ? Math.round((completedCount / steps.length) * 100) : 0;
+
+  const activeVersion = useMemo(
+    () => versions.find((version) => version.status === "active") ?? versions[0],
+    [versions],
+  );
+  const activeRun = useMemo(
+    () => runs.find((run) => run.status === "active") ?? runs[0],
+    [runs],
+  );
 
   return (
     <div className="min-h-screen bg-ink-50 text-ink-950 [background-image:radial-gradient(1200px_circle_at_top,_rgba(255,255,255,0.9),_transparent)]">
+      <header className="border-b border-ink-200/60 bg-white/80 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-6">
+          <div className="flex items-center gap-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-200 bg-white">
+              <img src="/logo.png" alt="Narrative Interviewer" className="h-8 w-8" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.35em] text-ink-400">Narrative Interviewer</p>
+              <h1 className="text-2xl font-semibold text-ink-950">Survey Studio</h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {activeStep && (
+              <Badge variant="secondary">
+                Step {currentIndex + 1} of {steps.length}: {activeStep.label}
+              </Badge>
+            )}
+            <Button asChild variant="outline" size="sm">
+              <a href="/surveys">All surveys</a>
+            </Button>
+          </div>
+        </div>
+        <div className="mx-auto max-w-7xl px-6 pb-4">
+          <div className="h-2 w-full rounded-full bg-ink-100">
+            <div
+              className="h-2 rounded-full bg-ink-900"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-ink-500">{progressPercent}% complete</p>
+        </div>
+      </header>
+
       <div className="mx-auto flex max-w-7xl gap-6 px-6 py-8">
         <aside
           className={cn(
@@ -107,7 +159,16 @@ export const SurveyShell = ({
                       className={cn("w-full justify-between text-left", collapsed && "justify-center")}
                     >
                       <a href={step.href}>
-                        {!collapsed && <span>{step.label}</span>}
+                        {!collapsed && (
+                          <span className="flex items-center gap-2">
+                            {step.status === "complete" ? (
+                              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                            ) : (
+                              <Circle className="h-4 w-4 text-ink-300" />
+                            )}
+                            {step.label}
+                          </span>
+                        )}
                         <Badge variant={step.status === "complete" ? "accent" : "secondary"}>
                           {step.status === "complete" ? "Done" : step.status === "current" ? "Now" : "Next"}
                         </Badge>
@@ -122,12 +183,21 @@ export const SurveyShell = ({
 
               <Separator />
 
-              <div className="space-y-3">
-                {!collapsed && (
-                  <p className="text-xs uppercase tracking-[0.3em] text-ink-400">Versions</p>
+              <details className="space-y-3">
+                <summary className={cn("flex cursor-pointer items-center justify-between text-xs uppercase tracking-[0.3em] text-ink-400", collapsed && "hidden")}>
+                  <span>Versions</span>
+                  <ChevronDown className="h-3 w-3" />
+                </summary>
+                {!collapsed && activeVersion && (
+                  <div className="rounded-xl border border-ink-200/60 bg-white/95 p-2 text-xs">
+                    <p className="font-semibold text-ink-900">Version {activeVersion.version}</p>
+                    <p className="text-[11px] text-ink-500">
+                      {new Date(activeVersion.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
                 )}
                 <div className="space-y-2">
-                  {versions.slice(0, collapsed ? 2 : 4).map((version) => (
+                  {versions.slice(0, collapsed ? 2 : 6).map((version) => (
                     <Card key={version.id} className="border-ink-200/60 bg-white/95 p-2">
                       <div className={cn("flex items-center justify-between gap-2", collapsed && "flex-col")}>
                         {!collapsed && (
@@ -148,16 +218,25 @@ export const SurveyShell = ({
                     <p className="text-xs text-ink-500">No versions yet.</p>
                   )}
                 </div>
-              </div>
+              </details>
 
               <Separator />
 
-              <div className="space-y-3">
-                {!collapsed && (
-                  <p className="text-xs uppercase tracking-[0.3em] text-ink-400">Runs</p>
+              <details className="space-y-3">
+                <summary className={cn("flex cursor-pointer items-center justify-between text-xs uppercase tracking-[0.3em] text-ink-400", collapsed && "hidden")}>
+                  <span>Runs</span>
+                  <ChevronDown className="h-3 w-3" />
+                </summary>
+                {!collapsed && activeRun && (
+                  <div className="rounded-xl border border-ink-200/60 bg-white/95 p-2 text-xs">
+                    <p className="font-semibold text-ink-900">{activeRun.title}</p>
+                    <p className="text-[11px] text-ink-500">
+                      {new Date(activeRun.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
                 )}
                 <div className="space-y-2">
-                  {runs.slice(0, collapsed ? 2 : 4).map((run) => (
+                  {runs.slice(0, collapsed ? 2 : 6).map((run) => (
                     <Card key={run.id} className="border-ink-200/60 bg-white/95 p-2">
                       <div className={cn("flex items-center justify-between gap-2", collapsed && "flex-col")}>
                         {!collapsed && (
@@ -178,7 +257,23 @@ export const SurveyShell = ({
                     <p className="text-xs text-ink-500">No runs yet.</p>
                   )}
                 </div>
-              </div>
+              </details>
+            </div>
+
+            <div className={cn("border-t border-ink-200/60 p-4", collapsed && "px-2")}>
+              {nextStep && (
+                <Button asChild className="w-full">
+                  <a href={nextStep.href}>
+                    {!collapsed && (
+                      <span className="flex items-center gap-2">
+                        Continue to {nextStep.label}
+                        <ArrowRight className="h-4 w-4" />
+                      </span>
+                    )}
+                    {collapsed && <ArrowRight className="h-4 w-4" />}
+                  </a>
+                </Button>
+              )}
             </div>
           </div>
         </aside>

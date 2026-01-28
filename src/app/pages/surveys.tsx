@@ -22,14 +22,53 @@ export const SurveysPage = async () => {
           <div className="flex items-center gap-3">
             <Badge variant="secondary">{surveys.length} surveys</Badge>
             <Button asChild>
-              <a href="/surveys/new">Create survey</a>
+              <a href="/surveys/new">Start new chat</a>
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
-        <section className="grid gap-4 md:grid-cols-[1.2fr,0.8fr]">
+      <main className="mx-auto flex max-w-6xl gap-6 px-6 py-8">
+        <aside className="w-full max-w-[280px] space-y-4">
+          <Card className="border-ink-200/70 bg-white/95">
+            <CardHeader>
+              <CardTitle className="text-base">Quick actions</CardTitle>
+              <CardDescription>Start or configure your workspace.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button asChild className="w-full">
+                <a href="/surveys/new">Start new chat</a>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <a href="/settings">Settings</a>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-ink-200/70 bg-white/95">
+            <CardHeader>
+              <CardTitle className="text-base">Your surveys</CardTitle>
+              <CardDescription>Recent workspaces.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {surveys.slice(0, 6).map((survey) => (
+                <a
+                  key={survey.id}
+                  href={`/surveys/${survey.id}`}
+                  className="flex items-center justify-between rounded-xl border border-ink-200/60 bg-white px-3 py-2 text-sm text-ink-700 hover:border-ink-300"
+                >
+                  <span className="truncate">{survey.title}</span>
+                  <Badge variant="secondary">{survey.version_count} v</Badge>
+                </a>
+              ))}
+              {surveys.length === 0 && (
+                <p className="text-sm text-ink-500">No surveys yet.</p>
+              )}
+            </CardContent>
+          </Card>
+        </aside>
+
+        <section className="flex-1 space-y-6">
           <Card className="border-ink-200/70 bg-white/95">
             <CardHeader>
               <CardTitle>All surveys</CardTitle>
@@ -119,7 +158,7 @@ export const SurveysPage = async () => {
                 <p>Create a run and invite participants.</p>
               </div>
               <Button asChild className="w-full">
-                <a href="/surveys/new">Create survey</a>
+                <a href="/surveys/new">Start new chat</a>
               </Button>
             </CardContent>
           </Card>
