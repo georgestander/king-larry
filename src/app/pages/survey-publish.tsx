@@ -31,6 +31,8 @@ export const SurveyPublishPage = async ({ params }: { params: { id: string } }) 
     hasRuns: runs.length > 0,
   });
 
+  const latestRunWithResponses = runs.find((run) => (run.started_count ?? 0) > 0 || (run.completed_count ?? 0) > 0) ?? null;
+
   let interview = defaultInterviewTemplate;
   if (activeVersion?.json) {
     try {
@@ -70,6 +72,16 @@ export const SurveyPublishPage = async ({ params }: { params: { id: string } }) 
           interview={interview}
           scriptVersionNumber={activeVersion.version}
           scriptVersionCreatedAt={activeVersion.created_at}
+          latestResponseRun={latestRunWithResponses ? {
+            id: latestRunWithResponses.id,
+            title: latestRunWithResponses.title,
+            created_at: latestRunWithResponses.created_at,
+            script_version_number: latestRunWithResponses.script_version_number,
+            sent_count: latestRunWithResponses.sent_count,
+            started_count: latestRunWithResponses.started_count,
+            completed_count: latestRunWithResponses.completed_count,
+          } : null}
+          requiresResponseGate={Boolean(latestRunWithResponses && latestRunWithResponses.script_version_id !== activeVersion.id)}
         />
       ) : (
         <div className="rounded-2xl border border-ink-200 bg-white/90 p-8 text-sm text-ink-600">

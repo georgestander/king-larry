@@ -19,6 +19,16 @@ type SurveyPublishClientProps = {
   interview: InterviewDefinition;
   scriptVersionNumber: number;
   scriptVersionCreatedAt: string;
+  latestResponseRun: {
+    id: string;
+    title: string;
+    created_at: string;
+    script_version_number: number;
+    sent_count: number;
+    started_count: number;
+    completed_count: number;
+  } | null;
+  requiresResponseGate: boolean;
 };
 
 type Participant = {
@@ -123,11 +133,14 @@ export const SurveyPublishClient = ({
   interview,
   scriptVersionNumber,
   scriptVersionCreatedAt,
+  latestResponseRun,
+  requiresResponseGate,
 }: SurveyPublishClientProps) => {
   const [sessionTitle, setSessionTitle] = useState(`${defaultTitle} Run`);
   const [timeLimit, setTimeLimit] = useState("15");
   const [provider, setProvider] = useState<ModelProvider>("openai");
   const [model, setModel] = useState(getDefaultModel("openai"));
+  const [acknowledgeSplit, setAcknowledgeSplit] = useState(false);
   const [availableProviders, setAvailableProviders] = useState({
     openai: true,
     anthropic: true,
@@ -309,6 +322,44 @@ export const SurveyPublishClient = ({
           <CardDescription>Confirm what you’re about to publish, then create a live run.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!sessionId && latestResponseRun && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-950">
+              <p className="font-semibold text-amber-950">Heads up: you already have responses</p>
+              <p className="mt-1 text-xs text-amber-900/80">
+                Latest run with responses: <span className="font-semibold">{latestResponseRun.title}</span>{" "}
+                (Version {latestResponseRun.script_version_number}) ·{" "}
+                {new Date(latestResponseRun.created_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-4 text-xs text-amber-900/80">
+                <span><span className="font-semibold">Sent</span> {latestResponseRun.sent_count}</span>
+                <span><span className="font-semibold">Started</span> {latestResponseRun.started_count}</span>
+                <span><span className="font-semibold">Completed</span> {latestResponseRun.completed_count}</span>
+              </div>
+              {requiresResponseGate && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-amber-950">
+                    You’re about to publish <span className="font-semibold">Version {scriptVersionNumber}</span>. This creates a new run and splits results.
+                    If you just need more respondents, invite more people to the existing run instead.
+                  </p>
+                  <label className="flex items-start gap-2 text-xs text-amber-950">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 rounded border-amber-300 text-ink-900"
+                      checked={acknowledgeSplit}
+                      onChange={(event) => setAcknowledgeSplit(event.target.checked)}
+                    />
+                    <span>I understand this publishes a new version and splits results.</span>
+                  </label>
+                </div>
+              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <a href={`/surveys/${scriptId}/runs/${latestResponseRun.id}`}>View latest run results</a>
+                </Button>
+              </div>
+            </div>
+          )}
+
           <details className="group">
             <summary className="flex cursor-pointer items-center justify-between rounded-xl border border-ink-200/70 bg-white px-4 py-3 text-sm font-semibold text-ink-900">
               Survey script (Version {scriptVersionNumber})
@@ -364,7 +415,7 @@ export const SurveyPublishClient = ({
           </div>
           <ErrorBanner error={error} />
           {!sessionId ? (
-            <Button onClick={handlePublish} disabled={saving}>
+            <Button onClick={handlePublish} disabled={saving || (requiresResponseGate && latestResponseRun ? !acknowledgeSplit : false)}>
               <Sparkles className="mr-2 h-4 w-4" />
               Publish run
             </Button>
