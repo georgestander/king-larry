@@ -146,7 +146,12 @@ export const getScriptVersion = async (versionId: string) => {
   return versions[0] ?? null;
 };
 
-export const createScript = async (title: string, json: string, promptMarkdown: string) => {
+export const createScript = async (
+  title: string,
+  json: string,
+  promptMarkdown: string,
+  editorJson?: string | null,
+) => {
   const db = getDb();
   const scriptId = createId();
   const versionId = createId();
@@ -175,6 +180,9 @@ export const createScript = async (title: string, json: string, promptMarkdown: 
       version: 1,
       json,
       prompt_markdown: promptMarkdown,
+      editor_json: editorJson ?? null,
+      preview_transcript_json: null,
+      preview_updated_at: null,
       status: "active",
       created_at: nowIso(),
       previous_version_id: null,
@@ -189,6 +197,9 @@ export const createScriptVersion = async (
   json: string,
   promptMarkdown: string,
   previousVersionId?: string | null,
+  editorJson?: string | null,
+  previewTranscriptJson?: string | null,
+  previewUpdatedAt?: string | null,
 ) => {
   const db = getDb();
   const existingVersions = await db
@@ -210,6 +221,9 @@ export const createScriptVersion = async (
       version: nextVersion,
       json,
       prompt_markdown: promptMarkdown,
+      editor_json: editorJson ?? null,
+      preview_transcript_json: previewTranscriptJson ?? null,
+      preview_updated_at: previewUpdatedAt ?? null,
       status: "active",
       created_at: nowIso(),
       previous_version_id: previousVersionId ?? null,

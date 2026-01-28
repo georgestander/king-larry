@@ -11,6 +11,9 @@ export type ScriptVersionRow = {
   version: number;
   json: string;
   prompt_markdown: string;
+  editor_json: string | null;
+  preview_transcript_json: string | null;
+  preview_updated_at: string | null;
   status: "active" | "archived";
   created_at: string;
   previous_version_id: string | null;

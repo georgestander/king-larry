@@ -5,6 +5,8 @@ import { generateText } from "ai";
 import { getModel, resolveProvider } from "@/lib/ai";
 import { normalizeGeneratedInterview } from "@/lib/interview-normalize";
 import { defaultPrompt } from "@/data/default-script";
+import { editorDraftFromInterview, interviewFromEditorDraft } from "@/lib/editor-to-interview";
+import { validateEditorDraft } from "@/lib/editor-validators";
 import { validateInterviewDefinition } from "@/lib/interview-validators";
 import {
   archiveScriptVersion,
@@ -98,7 +100,9 @@ Return ONLY valid JSON.`;
   }
 
   const promptMarkdown = ensureString(result.parsed.promptMarkdown, defaultPrompt);
-  return json({ script: validation.data, promptMarkdown });
+  const draft = editorDraftFromInterview(validation.data);
+  draft.promptMarkdown = promptMarkdown;
+  return json({ draft });
 };
 
 const ensureString = (value: unknown, fallback: string) =>
@@ -111,11 +115,48 @@ export const handleScripts = async (request: Request) => {
   }
 
   if (request.method === "POST") {
-    const body = await parseJsonBody<{ title: string; json: string; promptMarkdown: string }>(request);
-    if (!body?.title || !body?.json) {
+    const body = await parseJsonBody<{ title?: string; json?: string; promptMarkdown?: string; draft?: unknown }>(request);
+    if (!body) {
+      return errorResponse(400, "request body is required");
+    }
+
+    if (body.draft) {
+      const validation = validateEditorDraft(body.draft);
+      if (!validation.ok) {
+        return errorResponse(422, "Draft failed validation", validation.errors);
+      }
+      const title = body.title ?? validation.data.meta.title;
+      if (!title) return errorResponse(400, "title is required");
+      const promptMarkdown = ensureString(validation.data.promptMarkdown, defaultPrompt);
+      const interview = interviewFromEditorDraft(validation.data, { version: 1 });
+      const jsonValue = JSON.stringify(interview, null, 2);
+      const editorJson = JSON.stringify(validation.data, null, 2);
+      const { scriptId, versionId } = await createScript(title, jsonValue, promptMarkdown, editorJson);
+      return json({ scriptId, versionId });
+    }
+
+    if (!body.title || !body.json) {
       return errorResponse(400, "title and json are required");
     }
-    const { scriptId, versionId } = await createScript(body.title, body.json, body.promptMarkdown ?? "");
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body.json);
+    } catch (error) {
+      return errorResponse(422, "Invalid JSON");
+    }
+
+    const validation = validateInterviewDefinition(parsed);
+    if (!validation.ok) {
+      return errorResponse(422, "Script failed validation", validation.errors);
+    }
+
+    const promptMarkdown = ensureString(body.promptMarkdown, defaultPrompt);
+    const editorDraft = editorDraftFromInterview(validation.data);
+    editorDraft.promptMarkdown = promptMarkdown;
+    const editorJson = JSON.stringify(editorDraft, null, 2);
+
+    const { scriptId, versionId } = await createScript(body.title, body.json, promptMarkdown, editorJson);
     return json({ scriptId, versionId });
   }
 
@@ -132,8 +173,38 @@ export const handleScriptVersions = async (request: Request, scriptId: string) =
     const script = await getScript(scriptId);
     if (!script) return errorResponse(404, "Script not found");
 
-    const body = await parseJsonBody<{ json: string; promptMarkdown?: string }>(request);
-    if (!body?.json) {
+    const active = await getActiveScriptVersion(scriptId);
+    if (active?.id) {
+      await archiveScriptVersion(active.id);
+    }
+
+    const body = await parseJsonBody<{ json?: string; promptMarkdown?: string; draft?: unknown }>(request);
+    if (!body) {
+      return errorResponse(400, "request body is required");
+    }
+
+    if (body.draft) {
+      const validation = validateEditorDraft(body.draft);
+      if (!validation.ok) {
+        return errorResponse(422, "Draft failed validation", validation.errors);
+      }
+      const promptMarkdown = ensureString(validation.data.promptMarkdown, defaultPrompt);
+      const interview = interviewFromEditorDraft(validation.data, { version: (active?.version ?? 0) + 1 });
+      const jsonValue = JSON.stringify(interview, null, 2);
+      const editorJson = JSON.stringify(validation.data, null, 2);
+      const next = await createScriptVersion(
+        scriptId,
+        jsonValue,
+        promptMarkdown,
+        active?.id ?? null,
+        editorJson,
+        null,
+        null,
+      );
+      return json({ versionId: next.versionId, version: next.version });
+    }
+
+    if (!body.json) {
       return errorResponse(400, "json is required");
     }
 
@@ -149,16 +220,19 @@ export const handleScriptVersions = async (request: Request, scriptId: string) =
       return errorResponse(422, "Script failed validation", validation.errors);
     }
 
-    const active = await getActiveScriptVersion(scriptId);
-    if (active?.id) {
-      await archiveScriptVersion(active.id);
-    }
+    const promptMarkdown = ensureString(body.promptMarkdown, defaultPrompt);
+    const editorDraft = editorDraftFromInterview(validation.data);
+    editorDraft.promptMarkdown = promptMarkdown;
+    const editorJson = JSON.stringify(editorDraft, null, 2);
 
     const next = await createScriptVersion(
       scriptId,
       body.json,
-      body.promptMarkdown ?? "",
+      promptMarkdown,
       active?.id ?? null,
+      editorJson,
+      null,
+      null,
     );
 
     return json({ versionId: next.versionId, version: next.version });
@@ -190,6 +264,9 @@ export const handleScriptRollback = async (request: Request, scriptId: string) =
     version.json,
     version.prompt_markdown,
     body.versionId,
+    version.editor_json,
+    version.preview_transcript_json,
+    version.preview_updated_at,
   );
 
   return json({ versionId: next.versionId, version: next.version });

@@ -99,4 +99,22 @@ export const migrations: Record<string, Migration> = {
       await db.schema.dropTable("scripts").execute();
     },
   },
+  "002_editor_fields": {
+    up: async (db) => {
+      await db.schema
+        .alterTable("script_versions")
+        .addColumn("editor_json", "text")
+        .addColumn("preview_transcript_json", "text")
+        .addColumn("preview_updated_at", "text")
+        .execute();
+    },
+    down: async (db) => {
+      await db.schema
+        .alterTable("script_versions")
+        .dropColumn("editor_json")
+        .dropColumn("preview_transcript_json")
+        .dropColumn("preview_updated_at")
+        .execute();
+    },
+  },
 };
