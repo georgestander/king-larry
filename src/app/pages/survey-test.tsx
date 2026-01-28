@@ -3,9 +3,7 @@
 import { buildSurveySteps } from "@/app/components/builder/steps";
 import { SurveyTestShellClient } from "@/app/pages/survey-test-shell-client";
 import { defaultInterviewTemplate, defaultPrompt } from "@/data/default-script";
-import { resolveProvider } from "@/lib/ai";
 import { editorDraftFromInterview } from "@/lib/editor-to-interview";
-import { getDefaultModel } from "@/lib/models";
 import { getActiveScriptVersion, getScript, listScriptVersions, listSessionsByScriptId } from "@/server/store";
 
 export const SurveyTestPage = async ({ params }: { params: { id: string } }) => {
@@ -53,9 +51,6 @@ export const SurveyTestPage = async ({ params }: { params: { id: string } }) => 
 
   draft.promptMarkdown = defaultPrompt.trim();
 
-  const initialProvider = resolveProvider();
-  const initialModel = getDefaultModel(initialProvider);
-
   return (
     <SurveyTestShellClient
       title={script.title}
@@ -75,8 +70,6 @@ export const SurveyTestPage = async ({ params }: { params: { id: string } }) => 
       scriptId={script.id}
       versionId={activeVersion?.id ?? null}
       draft={draft}
-      initialProvider={initialProvider}
-      initialModel={initialModel}
       timeLimitMinutes={15}
     />
   );

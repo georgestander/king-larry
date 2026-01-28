@@ -20,6 +20,8 @@ type InterviewChatProps = {
   onInputChange: (value: string) => void;
   onSubmit: (event: React.FormEvent) => void;
   onStart: () => void;
+  startDisabled?: boolean;
+  inputDisabled?: boolean;
   onComplete?: () => void;
   isLoading: boolean;
   completed: boolean;
@@ -92,6 +94,8 @@ export const InterviewChat = ({
   onInputChange,
   onSubmit,
   onStart,
+  startDisabled = false,
+  inputDisabled = false,
   onComplete,
   isLoading,
   completed,
@@ -131,7 +135,7 @@ export const InterviewChat = ({
                 <p className="text-sm text-ink-600">
                   This interview is time-boxed to {timeLimitMinutes} minutes. Answers are saved as you go.
                 </p>
-                <Button onClick={onStart}>Begin interview</Button>
+                <Button onClick={onStart} disabled={startDisabled}>Begin interview</Button>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
@@ -178,8 +182,9 @@ export const InterviewChat = ({
                     value={input}
                     onChange={(event) => onInputChange(event.target.value)}
                     placeholder="Type your response..."
+                    disabled={inputDisabled || isLoading}
                   />
-                  <Button type="submit" disabled={isLoading}>
+                  <Button type="submit" disabled={inputDisabled || isLoading}>
                     {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </Button>
                 </form>
