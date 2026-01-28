@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { RefreshCw, Save } from "lucide-react";
+import { ChevronDown, RefreshCw, Save } from "lucide-react";
 import { TextStreamChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
 
@@ -40,6 +40,7 @@ export const SurveyTestClient = ({
     anthropic: true,
     openrouter: true,
   });
+  const [modelsLoading, setModelsLoading] = useState(false);
   const [timeLimit, setTimeLimit] = useState(String(timeLimitMinutes));
   const [started, setStarted] = useState(false);
   const [startedAt, setStartedAt] = useState<number | null>(null);
@@ -73,6 +74,7 @@ export const SurveyTestClient = ({
   }, []);
 
   useEffect(() => {
+    setModelsLoading(true);
     fetch(`/api/models/${provider}`)
       .then((response) => response.json())
       .then((data) => {
@@ -83,7 +85,8 @@ export const SurveyTestClient = ({
           setModelOptions(MODEL_OPTIONS[provider]);
         }
       })
-      .catch(() => setModelOptions(MODEL_OPTIONS[provider]));
+      .catch(() => setModelOptions(MODEL_OPTIONS[provider]))
+      .finally(() => setModelsLoading(false));
   }, [provider]);
 
   useEffect(() => {
@@ -116,6 +119,7 @@ export const SurveyTestClient = ({
     const message = input.trim();
     setInput("");
     try {
+      console.log("[preview] sending message", { provider, model });
       await sendMessage(
         { text: message },
         {
@@ -161,68 +165,6 @@ export const SurveyTestClient = ({
 
   return (
     <div className="space-y-6">
-      <Card className="border-ink-200/70 bg-white/95">
-        <CardHeader className="flex-row items-center justify-between gap-4">
-          <div>
-            <CardTitle className="text-lg">Preview settings</CardTitle>
-            <p className="text-sm text-ink-500">Test the exact respondent experience. Start and send a message to see the AI reply.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => saveTranscript(messages)} disabled={saving}>
-              <Save className="mr-2 h-4 w-4" />
-              Save transcript
-            </Button>
-            <Button variant="outline" onClick={handleReset} disabled={saving}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Start over
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Provider</Label>
-            <Select value={provider} onValueChange={(value) => setProvider(value as ModelProvider)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="anthropic" disabled={!availableProviders.anthropic}>
-                Anthropic
-              </SelectItem>
-              <SelectItem value="openai" disabled={!availableProviders.openai}>
-                OpenAI
-              </SelectItem>
-              <SelectItem value="openrouter" disabled={!availableProviders.openrouter}>
-                OpenRouter
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-          <div className="space-y-2">
-            <Label>Model</Label>
-            <Select value={model} onValueChange={setModel}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {modelOptions.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Time limit (minutes)</Label>
-            <Input value={timeLimit} onChange={(event) => setTimeLimit(event.target.value)} />
-          </div>
-          {savedAt && (
-            <p className="text-xs text-ink-500">Saved {new Date(savedAt).toLocaleTimeString()}</p>
-          )}
-        </CardContent>
-      </Card>
-
       <ErrorBanner error={uiError} />
 
       <InterviewChat
@@ -241,6 +183,76 @@ export const SurveyTestClient = ({
         completed={completed}
         showFinish={false}
       />
+
+      <details className="group">
+        <summary className="flex cursor-pointer items-center justify-between rounded-xl border border-ink-200/70 bg-white/95 px-4 py-3 text-sm font-semibold text-ink-900">
+          Preview settings
+          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="mt-3">
+          <Card className="border-ink-200/70 bg-white/95">
+            <CardHeader className="flex-row items-center justify-between gap-4">
+              <div>
+                <CardTitle className="text-lg">Preview settings</CardTitle>
+                <p className="text-sm text-ink-500">Adjust provider, model, and timing for the preview.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={() => saveTranscript(messages)} disabled={saving}>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save transcript
+                </Button>
+                <Button variant="outline" onClick={handleReset} disabled={saving}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Start over
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label>Provider</Label>
+                <Select value={provider} onValueChange={(value) => setProvider(value as ModelProvider)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="anthropic" disabled={!availableProviders.anthropic}>
+                      Anthropic
+                    </SelectItem>
+                    <SelectItem value="openai" disabled={!availableProviders.openai}>
+                      OpenAI
+                    </SelectItem>
+                    <SelectItem value="openrouter" disabled={!availableProviders.openrouter}>
+                      OpenRouter
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Model {modelsLoading ? "(loading…)" : ""}</Label>
+                <Select value={model} onValueChange={setModel} disabled={modelsLoading}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {modelOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Time limit (minutes)</Label>
+                <Input value={timeLimit} onChange={(event) => setTimeLimit(event.target.value)} />
+              </div>
+              {savedAt && (
+                <p className="text-xs text-ink-500">Saved {new Date(savedAt).toLocaleTimeString()}</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </details>
     </div>
   );
 };
