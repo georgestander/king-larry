@@ -76,33 +76,52 @@ const postJson = async <T,>(url: string, body: unknown): Promise<T> => {
 };
 
 export default function Dashboard({ scripts, sessions }: DashboardProps) {
+  const activeSessions = sessions.filter((session) => session.status === "active").length;
+  const avgLimit = sessions.length
+    ? Math.round(sessions.reduce((sum, session) => sum + session.time_limit_minutes, 0) / sessions.length)
+    : 0;
   return (
-    <div className="min-h-screen bg-white text-slate-950">
-      <header className="border-b border-slate-200/60">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+    <div className="min-h-screen bg-ink-50 text-ink-950 [background-image:radial-gradient(1200px_circle_at_top,_rgba(255,255,255,0.9),_transparent)]">
+      <header className="border-b border-ink-200/60 bg-white/80 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-8">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-ink-200 bg-white">
               <img src="/logo.svg" alt="Narrative Interviewer" className="h-10 w-10" />
             </div>
             <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Narrative Interviewer</p>
-              <h1 className="text-2xl font-semibold text-slate-900">Interview Ops Studio</h1>
+              <p className="text-xs uppercase tracking-[0.35em] text-ink-400">Narrative Interviewer</p>
+              <h1 className="text-3xl font-semibold text-ink-950">Interview Ops Studio</h1>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <GenerateScriptDialog scripts={scripts} />
-            <CreateScriptDialog scripts={scripts} />
-            <CreateSessionDialog scripts={scripts} />
-          </div>
+          <p className="hidden text-sm text-ink-500 md:block">
+            Launch narrative interviews with versioned scripts and invite-only sessions.
+          </p>
         </div>
       </header>
 
       <main className="mx-auto grid max-w-6xl gap-8 px-6 py-8 lg:grid-cols-[2fr,1fr]">
         <section className="space-y-6">
+          <div className="grid gap-4 rounded-2xl border border-ink-200/70 bg-white/80 p-5 shadow-[0_30px_60px_-50px_rgba(15,23,42,0.5)] md:grid-cols-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-ink-400">Scripts</p>
+              <p className="mt-2 text-3xl font-semibold text-ink-950">{scripts.length}</p>
+              <p className="text-xs text-ink-500">Active libraries</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-ink-400">Sessions</p>
+              <p className="mt-2 text-3xl font-semibold text-ink-950">{activeSessions}</p>
+              <p className="text-xs text-ink-500">Currently running</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-ink-400">Avg. time</p>
+              <p className="mt-2 text-3xl font-semibold text-ink-950">{avgLimit || 15}m</p>
+              <p className="text-xs text-ink-500">Interview limit</p>
+            </div>
+          </div>
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">Scripts</h2>
-              <p className="text-sm text-slate-500">Versioned interview scripts with narrative prompts.</p>
+              <h2 className="text-xl font-semibold text-ink-950">Scripts</h2>
+              <p className="text-sm text-ink-500">Versioned interview scripts with narrative prompts.</p>
             </div>
             <Badge variant="secondary">{scripts.length} total</Badge>
           </div>
@@ -121,7 +140,7 @@ export default function Dashboard({ scripts, sessions }: DashboardProps) {
             ))}
             {scripts.length === 0 && (
               <Card>
-                <CardContent className="py-10 text-center text-sm text-slate-500">
+                <CardContent className="py-10 text-center text-sm text-ink-500">
                   No scripts yet. Generate one or create manually.
                 </CardContent>
               </Card>
@@ -130,10 +149,22 @@ export default function Dashboard({ scripts, sessions }: DashboardProps) {
         </section>
 
         <section className="space-y-6">
+          <Card className="border-ink-200/70 bg-white/85">
+            <CardHeader>
+              <CardTitle className="text-base">Launch actions</CardTitle>
+              <CardDescription>Generate scripts, create versions, and open new sessions.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <GenerateScriptDialog scripts={scripts} />
+              <CreateScriptDialog scripts={scripts} />
+              <CreateSessionDialog scripts={scripts} />
+            </CardContent>
+          </Card>
+
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">Sessions</h2>
-              <p className="text-sm text-slate-500">Active interview instances and completion tracking.</p>
+              <h2 className="text-xl font-semibold text-ink-950">Sessions</h2>
+              <p className="text-sm text-ink-500">Active interview instances and completion tracking.</p>
             </div>
             <Badge variant="secondary">{sessions.length} total</Badge>
           </div>
@@ -154,12 +185,12 @@ export default function Dashboard({ scripts, sessions }: DashboardProps) {
                 </CardHeader>
                 <CardContent className="flex items-center justify-between gap-3">
                   <a
-                    className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline"
+                    className="text-sm font-medium text-ink-700 underline-offset-4 hover:underline"
                     href={`/sessions/${session.id}`}
                   >
                     View session
                   </a>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-ink-400">
                     Created {new Date(session.created_at).toLocaleDateString()}
                   </span>
                 </CardContent>
@@ -167,7 +198,7 @@ export default function Dashboard({ scripts, sessions }: DashboardProps) {
             ))}
             {sessions.length === 0 && (
               <Card>
-                <CardContent className="py-10 text-center text-sm text-slate-500">
+                <CardContent className="py-10 text-center text-sm text-ink-500">
                   No sessions yet. Create one to invite participants.
                 </CardContent>
               </Card>
@@ -179,17 +210,17 @@ export default function Dashboard({ scripts, sessions }: DashboardProps) {
           <Separator className="my-10" />
           <div className="grid gap-6 md:grid-cols-3">
             <InsightCard
-              icon={<Sparkles className="h-5 w-5 text-amber-500" />}
+              icon={<Sparkles className="h-5 w-5 text-accent-500" />}
               title="Narrative cadence"
               description="One question at a time, guided by adaptive prompts."
             />
             <InsightCard
-              icon={<Users className="h-5 w-5 text-amber-500" />}
+              icon={<Users className="h-5 w-5 text-accent-500" />}
               title="Invite-only capture"
               description="Each interview is locked to participant tokens."
             />
             <InsightCard
-              icon={<Calendar className="h-5 w-5 text-amber-500" />}
+              icon={<Calendar className="h-5 w-5 text-accent-500" />}
               title="15-minute limit"
               description="Time boxes keep interviews focused and efficient."
             />
@@ -248,7 +279,10 @@ const CreateScriptDialog = ({ scripts }: { scripts: ScriptSummary[] }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">New Script</Button>
+        <Button variant="outline" className="w-full justify-between">
+          New Script
+          <FileText className="h-4 w-4 text-ink-400" />
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -271,7 +305,7 @@ const CreateScriptDialog = ({ scripts }: { scripts: ScriptSummary[] }) => {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-slate-500">Selecting an existing script creates a new version.</p>
+            <p className="text-xs text-ink-500">Selecting an existing script creates a new version.</p>
           </div>
           <div className="space-y-2">
             <Label>Script title</Label>
@@ -370,9 +404,10 @@ const GenerateScriptDialog = ({ scripts }: { scripts: ScriptSummary[] }) => {
       if (!next) setGenerated(null);
     }}>
       <DialogTrigger asChild>
-        <Button variant="accent">
+        <Button variant="accent" className="w-full justify-between">
           <Sparkles className="h-4 w-4" />
           Generate Script
+          <span className="text-xs uppercase tracking-[0.2em] text-ink-900/70">AI</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl">
@@ -401,7 +436,7 @@ const GenerateScriptDialog = ({ scripts }: { scripts: ScriptSummary[] }) => {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-slate-500">Selecting an existing script creates a new version.</p>
+              <p className="text-xs text-ink-500">Selecting an existing script creates a new version.</p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -525,9 +560,10 @@ const CreateSessionDialog = ({ scripts }: { scripts: ScriptSummary[] }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="secondary">
+        <Button variant="secondary" className="w-full justify-between">
           <Users className="h-4 w-4" />
           New Session
+          <span className="text-xs uppercase tracking-[0.2em] text-ink-500">Invite</span>
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -637,9 +673,9 @@ const ScriptVersionsDialog = ({ scriptId }: { scriptId: string }) => {
           <DialogDescription>Rollback to a previous version when needed.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          {loading && <p className="text-sm text-slate-500">Loading...</p>}
+          {loading && <p className="text-sm text-ink-500">Loading...</p>}
           {!loading && versions.length === 0 && (
-            <p className="text-sm text-slate-500">No versions found.</p>
+            <p className="text-sm text-ink-500">No versions found.</p>
           )}
           {versions.map((version) => (
             <Card key={version.id}>

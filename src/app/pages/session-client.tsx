@@ -169,14 +169,14 @@ export const TranscriptDialog = ({ participantId, label }: { participantId: stri
           <DialogDescription>Conversation transcript</DialogDescription>
         </DialogHeader>
         <div className="max-h-[60vh] space-y-3 overflow-y-auto">
-          {loading && <p className="text-sm text-slate-500">Loading...</p>}
+          {loading && <p className="text-sm text-ink-500">Loading...</p>}
           {!loading && messages.length === 0 && (
-            <p className="text-sm text-slate-500">No messages yet.</p>
+            <p className="text-sm text-ink-500">No messages yet.</p>
           )}
           {messages.map((message) => (
             <Card key={message.id} className="p-3">
-              <p className="text-xs uppercase text-slate-400">{message.role}</p>
-              <p className="text-sm text-slate-700">{message.content}</p>
+              <p className="text-xs uppercase text-ink-400">{message.role}</p>
+              <p className="text-sm text-ink-700">{message.content}</p>
             </Card>
           ))}
         </div>

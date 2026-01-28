@@ -8,8 +8,8 @@ export const InterviewPage = async ({ params }: { params: { token: string } }) =
   if (!participant) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-16">
-        <h1 className="text-2xl font-semibold text-slate-900">Invalid invite</h1>
-        <p className="text-sm text-slate-500">This interview link is not valid.</p>
+        <h1 className="text-2xl font-semibold text-ink-950">Invalid invite</h1>
+        <p className="text-sm text-ink-500">This interview link is not valid.</p>
       </div>
     );
   }
@@ -17,8 +17,8 @@ export const InterviewPage = async ({ params }: { params: { token: string } }) =
   if (participant.status === "completed") {
     return (
       <div className="mx-auto max-w-2xl px-6 py-16">
-        <h1 className="text-2xl font-semibold text-slate-900">Interview complete</h1>
-        <p className="text-sm text-slate-500">Thanks for participating.</p>
+        <h1 className="text-2xl font-semibold text-ink-950">Interview complete</h1>
+        <p className="text-sm text-ink-500">Thanks for participating.</p>
       </div>
     );
   }
@@ -27,7 +27,7 @@ export const InterviewPage = async ({ params }: { params: { token: string } }) =
   if (!session) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-16">
-        <h1 className="text-2xl font-semibold text-slate-900">Session not found</h1>
+        <h1 className="text-2xl font-semibold text-ink-950">Session not found</h1>
       </div>
     );
   }
