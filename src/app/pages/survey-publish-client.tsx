@@ -1,21 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Copy, Mail, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, Copy, Mail, Sparkles } from "lucide-react";
 
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
 import { ErrorBanner, type ErrorInfo } from "@/app/components/alerts/ErrorBanner";
-import { MODEL_OPTIONS, getDefaultModel, type ModelOption, type ModelProvider } from "@/lib/models";
+import type { InterviewDefinition } from "@/lib/interview-types";
+import { getDefaultModel, type ModelProvider } from "@/lib/models";
 
 type SurveyPublishClientProps = {
   scriptId: string;
   versionId: string;
   defaultTitle: string;
+  interview: InterviewDefinition;
+  scriptVersionNumber: number;
+  scriptVersionCreatedAt: string;
 };
 
 type Participant = {
@@ -113,12 +116,18 @@ const InviteLinkRow = ({ token, label, email, subject, baseUrl }: InviteLink & {
   );
 };
 
-export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: SurveyPublishClientProps) => {
+export const SurveyPublishClient = ({
+  scriptId,
+  versionId,
+  defaultTitle,
+  interview,
+  scriptVersionNumber,
+  scriptVersionCreatedAt,
+}: SurveyPublishClientProps) => {
   const [sessionTitle, setSessionTitle] = useState(`${defaultTitle} Run`);
   const [timeLimit, setTimeLimit] = useState("15");
   const [provider, setProvider] = useState<ModelProvider>("openai");
   const [model, setModel] = useState(getDefaultModel("openai"));
-  const [modelOptions, setModelOptions] = useState<ModelOption[]>(MODEL_OPTIONS.openai);
   const [availableProviders, setAvailableProviders] = useState({
     openai: true,
     anthropic: true,
@@ -149,36 +158,22 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
       .then((response) => response.json())
       .then((data) => {
         const providers = (data as { providers?: typeof availableProviders }).providers;
-        if (providers) {
-          setAvailableProviders(providers);
-          if (!providers[provider]) {
-            const next = (Object.keys(providers) as ModelProvider[]).find((key) => providers[key]) ?? provider;
-            setProvider(next);
-          }
-        }
+        const defaults = (data as { defaults?: { provider?: ModelProvider; model?: string; timeLimitMinutes?: number } }).defaults;
+        if (providers) setAvailableProviders(providers);
+        if (defaults?.provider) setProvider(defaults.provider);
+        if (defaults?.model) setModel(defaults.model);
+        if (typeof defaults?.timeLimitMinutes === "number") setTimeLimit(String(defaults.timeLimitMinutes));
       })
       .catch(() => null);
   }, []);
 
   useEffect(() => {
-    fetch(`/api/models/${provider}`)
-      .then((response) => response.json())
-      .then((data) => {
-        const models = (data as { models?: ModelOption[] }).models;
-        if (models?.length) {
-          setModelOptions(models);
-        } else {
-          setModelOptions(MODEL_OPTIONS[provider]);
-        }
-      })
-      .catch(() => setModelOptions(MODEL_OPTIONS[provider]));
-  }, [provider]);
-
-  useEffect(() => {
-    if (!modelOptions.find((option) => option.id === model)) {
-      setModel(getDefaultModel(provider));
+    if (!availableProviders[provider]) {
+      const next = (Object.keys(availableProviders) as ModelProvider[]).find((key) => availableProviders[key]) ?? provider;
+      setProvider(next);
+      setModel(getDefaultModel(next));
     }
-  }, [model, modelOptions, provider]);
+  }, [availableProviders, provider]);
 
   const refreshMetrics = async (id: string) => {
     const response = await fetch(`/api/sessions/${id}`);
@@ -310,10 +305,53 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
     <div className="space-y-6">
       <Card className="border-ink-200/70 bg-white/95">
         <CardHeader>
-          <CardTitle>Publish this run</CardTitle>
-          <CardDescription>Create a live session before sending invites.</CardDescription>
+          <CardTitle>Review & publish</CardTitle>
+          <CardDescription>Confirm what you’re about to publish, then create a live run.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <details className="group">
+            <summary className="flex cursor-pointer items-center justify-between rounded-xl border border-ink-200/70 bg-white px-4 py-3 text-sm font-semibold text-ink-900">
+              Survey script (Version {scriptVersionNumber})
+              <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="mt-3 space-y-3 rounded-xl border border-ink-200/70 bg-ink-50/60 p-4 text-sm text-ink-700">
+              <p className="text-xs text-ink-500">
+                This run will use the active script version created{" "}
+                {new Date(scriptVersionCreatedAt).toLocaleDateString()}.
+                Changes you make later will create a new version and won’t affect this run.
+              </p>
+              <div>
+                <p className="text-base font-semibold text-ink-950">{interview.meta.title}</p>
+                <p className="text-sm text-ink-500">{interview.meta.subtitle}</p>
+              </div>
+              {interview.context?.briefingMarkdown && (
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-[0.2em] text-ink-400">Briefing</p>
+                  <p className="whitespace-pre-wrap text-sm text-ink-700">{interview.context.briefingMarkdown}</p>
+                </div>
+              )}
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.2em] text-ink-400">Questions</p>
+                <ol className="space-y-2 pl-5 text-sm text-ink-800">
+                  {interview.questions.map((question) => (
+                    <li key={question.id}>
+                      <p className="text-xs font-semibold text-ink-900">{question.topic}</p>
+                      <p className="text-sm text-ink-700">{question.question}</p>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <a href={`/surveys/${scriptId}/script`}>Edit script</a>
+                </Button>
+                <Button asChild size="sm" variant="secondary">
+                  <a href={`/surveys/${scriptId}/test`}>Test chat</a>
+                </Button>
+              </div>
+            </div>
+          </details>
+
           <div className="space-y-2">
             <Label>Run title</Label>
             <Input value={sessionTitle} onChange={(event) => setSessionTitle(event.target.value)} />
@@ -322,40 +360,6 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
             <div className="space-y-2">
               <Label>Time limit (minutes)</Label>
               <Input value={timeLimit} onChange={(event) => setTimeLimit(event.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Provider</Label>
-              <Select value={provider} onValueChange={(value) => setProvider(value as ModelProvider)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="anthropic" disabled={!availableProviders.anthropic}>
-                  Anthropic
-                </SelectItem>
-                <SelectItem value="openai" disabled={!availableProviders.openai}>
-                  OpenAI
-                </SelectItem>
-                <SelectItem value="openrouter" disabled={!availableProviders.openrouter}>
-                  OpenRouter
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-            <div className="space-y-2">
-              <Label>Model</Label>
-              <Select value={model} onValueChange={setModel}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {modelOptions.map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <ErrorBanner error={error} />

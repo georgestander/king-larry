@@ -3,6 +3,8 @@
 import { SurveyShell } from "@/app/components/builder/SurveyShell";
 import { buildSurveySteps } from "@/app/components/builder/steps";
 import { SurveyPublishClient } from "@/app/pages/survey-publish-client";
+import { defaultInterviewTemplate } from "@/data/default-script";
+import { validateInterviewDefinition } from "@/lib/interview-validators";
 import { getActiveScriptVersion, getScript, listScriptVersions, listSessionsByScriptId } from "@/server/store";
 
 export const SurveyPublishPage = async ({ params }: { params: { id: string } }) => {
@@ -29,6 +31,19 @@ export const SurveyPublishPage = async ({ params }: { params: { id: string } }) 
     hasRuns: runs.length > 0,
   });
 
+  let interview = defaultInterviewTemplate;
+  if (activeVersion?.json) {
+    try {
+      const parsed = JSON.parse(activeVersion.json) as unknown;
+      const validation = validateInterviewDefinition(parsed);
+      if (validation.ok) {
+        interview = validation.data;
+      }
+    } catch {
+      interview = interview;
+    }
+  }
+
   return (
     <SurveyShell
       title={script.title}
@@ -52,6 +67,9 @@ export const SurveyPublishPage = async ({ params }: { params: { id: string } }) 
           scriptId={script.id}
           versionId={activeVersion.id}
           defaultTitle={script.title}
+          interview={interview}
+          scriptVersionNumber={activeVersion.version}
+          scriptVersionCreatedAt={activeVersion.created_at}
         />
       ) : (
         <div className="rounded-2xl border border-ink-200 bg-white/90 p-8 text-sm text-ink-600">
