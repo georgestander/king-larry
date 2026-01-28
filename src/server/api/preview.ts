@@ -1,5 +1,6 @@
 "use server";
 
+import { env } from "cloudflare:workers";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
 import { getModel, resolveProvider } from "@/lib/ai";
@@ -37,10 +38,26 @@ export const handlePreviewChat = async (request: Request) => {
     messageCount: body.messages?.length ?? 0,
   });
 
-  if (isMockAiEnabled()) {
+  const runtimeEnv = env as unknown as Record<string, string | undefined>;
+  const providerKey = body.provider === "openai"
+    ? runtimeEnv.OPENAI_API_KEY
+    : body.provider === "openrouter"
+      ? runtimeEnv.OPENROUTER_API_KEY
+      : runtimeEnv.ANTHROPIC_API_KEY;
+
+  const fallbackResponse = () => {
+    const userMessages = (body.messages ?? []).filter((message) => message.role === "user");
+    const name = userMessages[0]?.parts?.map((part) => (part.type === "text" ? part.text : "")).join("") ?? "there";
+    const questionIndex = Math.min(Math.max(userMessages.length - 1, 0), validation.data.questions.length - 1);
+    const question = validation.data.questions[questionIndex];
+    const prefix = userMessages.length <= 1 ? `Thanks, ${name}. ` : "Got it—thanks. ";
+    return `${prefix}${question?.question ?? "Tell me more about that."}`;
+  };
+
+  if (isMockAiEnabled() || !providerKey) {
     const stream = new ReadableStream<string>({
       start(controller) {
-        controller.enqueue("Mock preview response: thanks for testing the interview.");
+        controller.enqueue(fallbackResponse());
         controller.close();
       },
     });
@@ -51,13 +68,24 @@ export const handlePreviewChat = async (request: Request) => {
   const interview = interviewFromEditorDraft(validation.data);
   const system = buildSystemPrompt(interview, validation.data.promptMarkdown, body.timeLimitMinutes ?? 15);
 
-  const result = streamText({
-    model: getModel(provider, body.model),
-    system,
-    messages: await convertToModelMessages(body.messages ?? []),
-  });
+  try {
+    const result = streamText({
+      model: getModel(provider, body.model),
+      system,
+      messages: await convertToModelMessages(body.messages ?? []),
+    });
 
-  return textStreamResponse(result.textStream);
+    return textStreamResponse(result.textStream);
+  } catch (err) {
+    console.error("[preview] model error", err);
+    const stream = new ReadableStream<string>({
+      start(controller) {
+        controller.enqueue(fallbackResponse());
+        controller.close();
+      },
+    });
+    return textStreamResponse(stream);
+  }
 };
 
 export const handlePreviewSave = async (request: Request, scriptId: string, versionId: string) => {

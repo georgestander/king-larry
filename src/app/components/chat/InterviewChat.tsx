@@ -94,7 +94,7 @@ export const InterviewChat = ({
                     <div className="text-left">
                       <div className="inline-flex items-center gap-2 rounded-2xl bg-ink-100/80 px-4 py-2 text-sm text-ink-700">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Thinking…
+                        Loading response…
                       </div>
                     </div>
                   )}
