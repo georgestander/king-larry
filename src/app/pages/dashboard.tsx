@@ -86,7 +86,7 @@ export default function Dashboard({ scripts, sessions }: DashboardProps) {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-8">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-full border border-ink-200 bg-white">
-              <img src="/logo.svg" alt="Narrative Interviewer" className="h-10 w-10" />
+              <img src="/logo.png" alt="Narrative Interviewer" className="h-10 w-10" />
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.35em] text-ink-400">Narrative Interviewer</p>
