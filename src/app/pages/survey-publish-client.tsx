@@ -61,16 +61,12 @@ const summarizeParticipants = (participants: Participant[]) => {
   return { sent, started, completed, completionRate };
 };
 
-const InviteLinkRow = ({ token, label, email, subject }: InviteLink & { subject: string }) => {
-  const [origin, setOrigin] = useState("");
+const InviteLinkRow = ({ token, label, email, subject, baseUrl }: InviteLink & { subject: string; baseUrl: string }) => {
   const [copied, setCopied] = useState(false);
   const [copiedMessage, setCopiedMessage] = useState(false);
 
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
-
-  const inviteUrl = origin ? `${origin}/interview/${token}` : `/interview/${token}`;
+  const normalizedBaseUrl = baseUrl.replace(/\/+$/, "");
+  const inviteUrl = normalizedBaseUrl ? `${normalizedBaseUrl}/interview/${token}` : `/interview/${token}`;
 
   const inviteMessage = `Hi,\n\nYou’re invited to a short interview: ${subject}.\n\nOpen this link to start:\n${inviteUrl}\n\nThanks!`;
   const mailtoLink = email
@@ -136,6 +132,17 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<ErrorInfo | null>(null);
   const [inviteNotice, setInviteNotice] = useState(false);
+  const [inviteBaseUrl, setInviteBaseUrl] = useState<string>("");
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("inviteBaseUrl") ?? "";
+    setInviteBaseUrl(stored.trim() || window.location.origin);
+  }, []);
+
+  useEffect(() => {
+    if (!inviteBaseUrl) return;
+    window.localStorage.setItem("inviteBaseUrl", inviteBaseUrl);
+  }, [inviteBaseUrl]);
 
   useEffect(() => {
     fetch("/api/config")
@@ -288,7 +295,8 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
           return [...prev, { token, label: "Test link (anonymous)" }];
         });
         setInviteNotice(true);
-        window.open(`${window.location.origin}/interview/${token}`, "_blank", "noreferrer");
+        const normalizedBaseUrl = (inviteBaseUrl || window.location.origin).replace(/\/+$/, "");
+        window.open(`${normalizedBaseUrl}/interview/${token}`, "_blank", "noreferrer");
       }
       await refreshMetrics(sessionId);
     } catch (err) {
@@ -385,6 +393,23 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
                 </Button>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label>Invite link base URL</Label>
+              <p className="text-xs text-ink-500">
+                Links using <span className="font-semibold">localhost</span> only work on your machine. To test with someone else, run <code className="rounded bg-ink-100 px-1">pnpm dev --host</code> and set this to your LAN URL (or deploy and use your public URL).
+              </p>
+              <Input
+                value={inviteBaseUrl}
+                onChange={(event) => setInviteBaseUrl(event.target.value)}
+                placeholder="https://your-domain.com"
+              />
+              {inviteBaseUrl.includes("localhost") && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-950">
+                  This link will not work for other people. Replace <span className="font-semibold">localhost</span> with your machine’s IP (same Wi‑Fi) or a deployed URL.
+                </div>
+              )}
+            </div>
             <div className="space-y-2">
               <Label>Emails to generate links for (comma-separated)</Label>
               <p className="text-xs text-ink-500">We won’t email them automatically. Emails are used only to label invite links.</p>
@@ -429,6 +454,7 @@ export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: Surve
                       label={link.label}
                       email={link.email}
                       subject={sessionTitle}
+                      baseUrl={inviteBaseUrl}
                     />
                   ))}
                 </div>

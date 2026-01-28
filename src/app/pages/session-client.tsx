@@ -92,16 +92,20 @@ export const InviteMoreDialog = ({ sessionId }: { sessionId: string }) => {
 };
 
 const InviteLinkButton = ({ token }: { token: string }) => {
-  const [origin, setOrigin] = useState("");
+  const [baseUrl, setBaseUrl] = useState("");
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setOrigin(window.location.origin);
+    const stored = window.localStorage.getItem("inviteBaseUrl") ?? "";
+    setBaseUrl(stored.trim() || window.location.origin);
   }, []);
 
   const inviteUrl = useMemo(
-    () => (origin ? `${origin}/interview/${token}` : `/interview/${token}`),
-    [origin, token],
+    () => {
+      const normalized = baseUrl.replace(/\/+$/, "");
+      return normalized ? `${normalized}/interview/${token}` : `/interview/${token}`;
+    },
+    [baseUrl, token],
   );
 
   const handleCopy = async () => {
