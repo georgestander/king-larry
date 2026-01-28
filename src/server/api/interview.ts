@@ -14,6 +14,7 @@ import {
   getSession,
   markParticipantCompleted,
   markParticipantStarted,
+  setParticipantName,
 } from "@/server/store";
 import { errorResponse, json, parseJsonBody, textStreamResponse } from "@/server/api/utils";
 
@@ -84,11 +85,26 @@ export const handleInterviewMessage = async (request: Request, token: string) =>
     return textStreamResponse(closing);
   }
 
+  let nextTurnIndex = await getNextTurnIndex(participant.id);
+  if (nextTurnIndex === 1) {
+    const initialAssistant = messages.find((message) => message.role === "assistant");
+    const assistantText = extractMessageText(initialAssistant);
+    if (assistantText) {
+      await addMessage(participant.id, nextTurnIndex, "assistant", assistantText);
+      nextTurnIndex += 1;
+    }
+  }
+
   const lastMessage = messages[messages.length - 1];
   const userText = extractMessageText(lastMessage);
   if (userText) {
-    const userTurn = await getNextTurnIndex(participant.id);
-    await addMessage(participant.id, userTurn, "user", userText);
+    await addMessage(participant.id, nextTurnIndex, "user", userText);
+    if (!participant.name) {
+      const candidate = userText.split("\n")[0]?.trim().slice(0, 80);
+      if (candidate) {
+        await setParticipantName(participant.id, candidate);
+      }
+    }
   }
 
   const system = buildSystemPrompt(validation.data, version.prompt_markdown, session.time_limit_minutes);

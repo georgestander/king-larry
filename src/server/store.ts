@@ -233,6 +233,15 @@ export const getParticipantByToken = async (token: string) => {
   return rows[0] ?? null;
 };
 
+export const setParticipantName = async (participantId: string, name: string) => {
+  const db = getDb();
+  await db
+    .updateTable("participants")
+    .set({ name })
+    .where("id", "=", participantId)
+    .execute();
+};
+
 export const markParticipantStarted = async (participantId: string) => {
   const db = getDb();
   await db
