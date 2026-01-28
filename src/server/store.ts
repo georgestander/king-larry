@@ -298,7 +298,7 @@ export const listSessions = async () => {
 
 export const listSessionsByScriptId = async (scriptId: string) => {
   const db = getDb();
-  return db
+  const rows = await db
     .selectFrom("sessions")
     .innerJoin("script_versions", "script_versions.id", "sessions.script_version_id")
     .select([
@@ -310,10 +310,38 @@ export const listSessionsByScriptId = async (scriptId: string) => {
       "sessions.model",
       "sessions.status",
       "sessions.created_at",
+      "script_versions.version as script_version_number",
+    ])
+    .select((eb) => [
+      eb
+        .selectFrom("participants")
+        .select(eb.fn.countAll().as("sent_count"))
+        .whereRef("participants.session_id", "=", "sessions.id")
+        .as("sent_count"),
+      eb
+        .selectFrom("participants")
+        .select(eb.fn.countAll().as("started_count"))
+        .whereRef("participants.session_id", "=", "sessions.id")
+        .where("participants.status", "in", ["started", "completed"])
+        .as("started_count"),
+      eb
+        .selectFrom("participants")
+        .select(eb.fn.countAll().as("completed_count"))
+        .whereRef("participants.session_id", "=", "sessions.id")
+        .where("participants.status", "=", "completed")
+        .as("completed_count"),
     ])
     .where("script_versions.script_id", "=", scriptId)
     .orderBy("sessions.created_at", "desc")
     .execute();
+
+  return rows.map((row) => ({
+    ...row,
+    script_version_number: Number(row.script_version_number ?? 0),
+    sent_count: Number(row.sent_count ?? 0),
+    started_count: Number(row.started_count ?? 0),
+    completed_count: Number(row.completed_count ?? 0),
+  }));
 };
 
 export const getSession = async (sessionId: string) => {
