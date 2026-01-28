@@ -89,12 +89,16 @@ export const SurveysPage = async () => {
             <p>Edit questions in a human-readable editor.</p>
           </div>
           <div>
-            <p className="font-semibold text-ink-900">3. Test</p>
-            <p>Experience the exact respondent UI before publishing.</p>
+            <p className="font-semibold text-ink-900">3. Publish</p>
+            <p>Create a run and invite participants.</p>
           </div>
           <div>
-            <p className="font-semibold text-ink-900">4. Publish</p>
-            <p>Create a run and invite participants.</p>
+            <p className="font-semibold text-ink-900">4. Test</p>
+            <p>Open the exact respondent experience from an invite link.</p>
+          </div>
+          <div>
+            <p className="font-semibold text-ink-900">5. Results</p>
+            <p>Track completions and review transcripts.</p>
           </div>
           <Button asChild className="w-full">
             <a href="/surveys/new">Start new chat</a>

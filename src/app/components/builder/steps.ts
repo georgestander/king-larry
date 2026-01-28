@@ -22,12 +22,12 @@ export const buildSurveySteps = ({
   hasPreview,
   hasRuns,
 }: BuildStepsInput): SurveyStep[] => {
-  const order: SurveyStep["id"][] = ["brief", "script", "test", "publish", "results"];
+  const order: SurveyStep["id"][] = ["brief", "script", "publish", "test", "results"];
   const isComplete = (step: SurveyStep["id"]) => {
     if (step === "brief") return hasScript;
     if (step === "script") return hasScript;
-    if (step === "test") return hasPreview || activeStep === "publish" || activeStep === "results";
     if (step === "publish") return hasRuns;
+    if (step === "test") return hasRuns && (hasPreview || activeStep === "results");
     if (step === "results") return hasRuns;
     return false;
   };

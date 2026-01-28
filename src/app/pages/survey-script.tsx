@@ -31,6 +31,10 @@ export const SurveyScriptPage = async ({ params }: { params: { id: string } }) =
     hasRuns: runs.length > 0,
   });
 
+  const hasRuns = runs.length > 0;
+  const hasResponses = runs.some((run) => (run.sent_count ?? 0) > 0 || (run.started_count ?? 0) > 0 || (run.completed_count ?? 0) > 0);
+  const latestRun = runs[0] ?? null;
+
   let initialDraft = editorDraftFromInterview(defaultInterviewTemplate);
   initialDraft.meta.title = script.title;
   initialDraft.promptMarkdown = defaultPrompt.trim();
@@ -74,6 +78,17 @@ export const SurveyScriptPage = async ({ params }: { params: { id: string } }) =
           started_count: run.started_count,
           completed_count: run.completed_count,
         }))}
+        notice={hasRuns ? {
+          tone: "warning",
+          title: hasResponses ? "Heads up: this survey already has respondents" : "Heads up: this survey has published runs",
+          description: latestRun
+            ? `Editing creates a new script version. Existing runs stay on Version ${latestRun.script_version_number}. Publishing a new run will split results.`
+            : "Editing creates a new script version. Existing runs won’t change. Publishing a new run will split results.",
+          actions: [
+            { label: "View results", href: `/surveys/${script.id}/runs`, variant: "outline" },
+            { label: "Publish & invite", href: `/surveys/${script.id}/publish`, variant: "ghost" },
+          ],
+        } : undefined}
       />
 
       <SurveyScriptClient

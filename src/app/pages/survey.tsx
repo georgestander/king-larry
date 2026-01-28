@@ -68,15 +68,15 @@ export const SurveyOverviewPage = async ({ params }: { params: { id: string } })
             </a>
             <a
               className="rounded-lg border border-ink-200 px-4 py-2 text-sm font-semibold text-ink-900"
-              href={`/surveys/${script.id}/test`}
-            >
-              Test chat
-            </a>
-            <a
-              className="rounded-lg border border-ink-200 px-4 py-2 text-sm font-semibold text-ink-900"
               href={`/surveys/${script.id}/publish`}
             >
               Publish & invite
+            </a>
+            <a
+              className="rounded-lg border border-ink-200 px-4 py-2 text-sm font-semibold text-ink-900"
+              href={`/surveys/${script.id}/test`}
+            >
+              Test chat
             </a>
           </div>
         </CardContent>

@@ -141,7 +141,6 @@ export const SurveyPublishClient = ({
   const [timeLimit, setTimeLimit] = useState("15");
   const [provider, setProvider] = useState<ModelProvider>("openai");
   const [model, setModel] = useState<string>("");
-  const [acknowledgeSplit, setAcknowledgeSplit] = useState(false);
   const [availableProviders, setAvailableProviders] = useState<Record<ModelProvider, boolean>>({
     openai: true,
     anthropic: true,
@@ -354,15 +353,6 @@ export const SurveyPublishClient = ({
                     You’re about to publish <span className="font-semibold">Version {scriptVersionNumber}</span>. This creates a new run and splits results.
                     If you just need more respondents, invite more people to the existing run instead.
                   </p>
-                  <label className="flex items-start gap-2 text-xs text-amber-950">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5 h-4 w-4 rounded border-amber-300 text-ink-900"
-                      checked={acknowledgeSplit}
-                      onChange={(event) => setAcknowledgeSplit(event.target.checked)}
-                    />
-                    <span>I understand this publishes a new version and splits results.</span>
-                  </label>
                 </div>
               )}
               <div className="mt-3 flex flex-wrap gap-2">
@@ -434,11 +424,10 @@ export const SurveyPublishClient = ({
                 saving
                 || !aiReady
                 || !availableProviders[provider]
-                || (requiresResponseGate && latestResponseRun ? !acknowledgeSplit : false)
               }
             >
               <Sparkles className="mr-2 h-4 w-4" />
-              Publish run
+              {requiresResponseGate ? "Publish new run anyway" : "Publish run"}
             </Button>
           ) : (
             <div className="rounded-xl border border-ink-200 bg-ink-50/70 p-4 text-sm text-ink-700">

@@ -35,7 +35,16 @@ type SurveyTopBarProps = {
   steps: SurveyStep[];
   versions?: SurveyVersionItem[];
   runs?: SurveyRunItem[];
-  notice?: React.ReactNode;
+  notice?: {
+    tone?: "warning" | "info";
+    title: string;
+    description: string;
+    actions?: Array<{
+      label: string;
+      href: string;
+      variant?: "default" | "secondary" | "outline" | "ghost";
+    }>;
+  };
 };
 
 const formatTimestamp = (value: string) =>
@@ -68,6 +77,11 @@ export const SurveyTopBar = ({
   );
   const progressPercent = steps.length ? Math.round((completedCount / steps.length) * 100) : 0;
 
+  const noticeTone = notice?.tone ?? "info";
+  const noticeStyles = noticeTone === "warning"
+    ? "border-amber-200 bg-amber-50/70 text-amber-950"
+    : "border-ink-200 bg-ink-50/70 text-ink-900";
+
   return (
     <>
       <div className="sticky top-6 z-20 rounded-2xl border border-ink-200/70 bg-white/90 p-5 shadow-[0_20px_40px_-35px_rgba(15,23,42,0.35)] backdrop-blur">
@@ -99,7 +113,21 @@ export const SurveyTopBar = ({
           </div>
         </div>
 
-        {notice && <div className="mt-4">{notice}</div>}
+        {notice && (
+          <div className={cn("mt-4 rounded-xl border p-4 text-sm", noticeStyles)}>
+            <p className="font-semibold">{notice.title}</p>
+            <p className="mt-1 text-xs opacity-90">{notice.description}</p>
+            {notice.actions?.length ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {notice.actions.map((action) => (
+                  <Button key={action.href} asChild size="sm" variant={action.variant ?? "outline"}>
+                    <a href={action.href}>{action.label}</a>
+                  </Button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        )}
 
         <div className="mt-4 space-y-3">
           <div className="flex items-center justify-between text-xs text-ink-500">
@@ -235,4 +263,3 @@ export const SurveyTopBar = ({
     </>
   );
 };
-

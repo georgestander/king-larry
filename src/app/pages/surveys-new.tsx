@@ -112,9 +112,11 @@ export const SurveysNewPage = () => {
             <ArrowRight className="h-3 w-3" />
             <span>Script</span>
             <ArrowRight className="h-3 w-3" />
+            <span>Publish</span>
+            <ArrowRight className="h-3 w-3" />
             <span>Test</span>
             <ArrowRight className="h-3 w-3" />
-            <span>Publish</span>
+            <span>Results</span>
           </div>
 
           <div className="rounded-xl border border-ink-200 bg-ink-50/70 p-4 text-sm text-ink-700">
