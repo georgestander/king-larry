@@ -6,6 +6,7 @@ export const Document: React.FC<{ children: React.ReactNode }> = ({
       <meta charSet="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <title>Narrative Interviewer</title>
+      <link rel="icon" href="/logo.svg" />
       <link rel="modulepreload" href="/src/client.tsx" />
     </head>
     <body>
