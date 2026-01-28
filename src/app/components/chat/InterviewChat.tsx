@@ -45,11 +45,19 @@ export const InterviewChat = ({
   completed,
   showFinish = true,
 }: InterviewChatProps) => {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const container = scrollRef.current;
+    if (!container) return;
+    const threshold = 120;
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    if (isNearBottom) {
+      requestAnimationFrame(() => {
+        container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+      });
+    }
+  }, [messages, isLoading]);
 
   return (
     <div className="min-h-screen bg-ink-50 [background-image:radial-gradient(1200px_circle_at_top,_rgba(255,255,255,0.9),_transparent)]">
@@ -76,7 +84,7 @@ export const InterviewChat = ({
             ) : (
               <div className="flex flex-col gap-4">
                 <div className="flex-1 space-y-4 rounded-2xl border border-ink-200/70 bg-white/80 p-5 shadow-[0_20px_40px_-35px_rgba(15,23,42,0.45)]">
-                  <div className="max-h-[55vh] min-h-[220px] space-y-4 overflow-y-auto pr-2">
+                  <div ref={scrollRef} className="max-h-[55vh] min-h-[220px] space-y-4 overflow-y-auto pr-2">
                   {messages.map((message) => (
                     <div key={message.id} className={message.role === "user" ? "text-right" : "text-left"}>
                       <div
@@ -98,7 +106,6 @@ export const InterviewChat = ({
                       </div>
                     </div>
                   )}
-                  <div ref={messagesEndRef} />
                 </div>
                 </div>
                 <form onSubmit={onSubmit} className="flex gap-2">
