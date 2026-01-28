@@ -12,6 +12,7 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { MODEL_OPTIONS, getDefaultModel, type ModelProvider } from "@/lib/models";
 
 type SurveyPublishClientProps = {
+  scriptId: string;
   versionId: string;
   defaultTitle: string;
 };
@@ -81,7 +82,7 @@ const InviteLinkRow = ({ token }: { token: string }) => {
   );
 };
 
-export const SurveyPublishClient = ({ versionId, defaultTitle }: SurveyPublishClientProps) => {
+export const SurveyPublishClient = ({ scriptId, versionId, defaultTitle }: SurveyPublishClientProps) => {
   const [sessionTitle, setSessionTitle] = useState(`${defaultTitle} Run`);
   const [timeLimit, setTimeLimit] = useState("15");
   const [provider, setProvider] = useState<ModelProvider>("openai");
@@ -255,7 +256,7 @@ export const SurveyPublishClient = ({ versionId, defaultTitle }: SurveyPublishCl
                 <a href={`/api/sessions/${sessionId}/export.csv`}>Export CSV</a>
               </Button>
               <Button asChild variant="outline">
-                <a href={`/sessions/${sessionId}`}>View results</a>
+                <a href={`/surveys/${scriptId}/runs/${sessionId}`}>View results</a>
               </Button>
             </div>
             {inviteTokens.length > 0 && (

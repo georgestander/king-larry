@@ -10,6 +10,8 @@ import { SurveyOverviewPage } from "@/app/pages/survey";
 import { SurveyScriptPage } from "@/app/pages/survey-script";
 import { SurveyTestPage } from "@/app/pages/survey-test";
 import { SurveyPublishPage } from "@/app/pages/survey-publish";
+import { SurveyRunsPage } from "@/app/pages/survey-runs";
+import { SurveyRunPage } from "@/app/pages/survey-run";
 import { SessionPage } from "@/app/pages/session";
 import { InterviewPage } from "@/app/pages/interview";
 
@@ -30,6 +32,8 @@ export default defineApp([
     route("/surveys/:id/script", SurveyScriptPage),
     route("/surveys/:id/test", SurveyTestPage),
     route("/surveys/:id/publish", SurveyPublishPage),
+    route("/surveys/:id/runs", SurveyRunsPage),
+    route("/surveys/:id/runs/:runId", SurveyRunPage),
     route("/sessions/:id", SessionPage),
     route("/interview/:token", InterviewPage),
   ]),

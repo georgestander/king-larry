@@ -4,20 +4,43 @@ import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Separator } from "@/app/components/ui/separator";
+import { SurveyShell } from "@/app/components/builder/SurveyShell";
+import { buildSurveySteps } from "@/app/components/builder/steps";
 import { InviteMoreDialog, ParticipantActions } from "@/app/pages/session-client";
-import { getSessionSummary } from "@/server/store";
+import { getActiveScriptVersion, getScript, getSessionSummary, listScriptVersions, listSessionsByScriptId } from "@/server/store";
 
-export const SessionPage = async ({ params }: { params: { id: string } }) => {
-  const summary = await getSessionSummary(params.id);
-  if (!summary) {
+export const SurveyRunPage = async ({ params }: { params: { id: string; runId: string } }) => {
+  const [script, versions, runs, summary] = await Promise.all([
+    getScript(params.id),
+    listScriptVersions(params.id),
+    listSessionsByScriptId(params.id),
+    getSessionSummary(params.runId),
+  ]);
+
+  if (!script) {
     return (
-      <div className="min-h-screen bg-ink-50 px-6 py-16">
-        <div className="mx-auto max-w-4xl">
-          <h1 className="text-2xl font-semibold text-ink-950">Session not found</h1>
-        </div>
+      <div className="mx-auto max-w-3xl px-6 py-12">
+        <h1 className="text-2xl font-semibold text-ink-950">Survey not found</h1>
       </div>
     );
   }
+
+  if (!summary || !runs.find((run) => run.id === params.runId)) {
+    return (
+      <div className="mx-auto max-w-3xl px-6 py-12">
+        <h1 className="text-2xl font-semibold text-ink-950">Run not found</h1>
+      </div>
+    );
+  }
+
+  const activeVersion = await getActiveScriptVersion(script.id);
+  const steps = buildSurveySteps({
+    surveyId: script.id,
+    activeStep: "results",
+    hasScript: versions.length > 0,
+    hasPreview: Boolean(activeVersion?.preview_transcript_json),
+    hasRuns: runs.length > 0,
+  });
 
   const { session, participants } = summary;
   const sentCount = participants.length;
@@ -28,28 +51,44 @@ export const SessionPage = async ({ params }: { params: { id: string } }) => {
     : 0;
 
   return (
-    <div className="min-h-screen bg-ink-50 text-ink-950 [background-image:radial-gradient(1200px_circle_at_top,_rgba(255,255,255,0.9),_transparent)]">
-      <div className="mx-auto max-w-5xl px-6 py-12">
-        <div className="flex flex-wrap items-start justify-between gap-6">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-ink-400">Session overview</p>
-            <h1 className="text-3xl font-semibold text-ink-950">{session.title}</h1>
-            <p className="text-sm text-ink-500">
-              {session.provider} / {session.model} · {session.time_limit_minutes} minutes
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <InviteMoreDialog sessionId={session.id} />
-            <Button asChild variant="outline">
-              <a href={`/api/sessions/${session.id}/export.csv`}>Download CSV</a>
-            </Button>
-            <Button asChild variant="outline">
-              <a href={`/api/sessions/${session.id}/export.pdf`}>Download PDF</a>
-            </Button>
-          </div>
-        </div>
-
-        <Separator className="my-8" />
+    <SurveyShell
+      title={script.title}
+      subtitle="Run results"
+      steps={steps}
+      versions={versions.map((version) => ({
+        id: version.id,
+        version: version.version,
+        status: version.status,
+        created_at: version.created_at,
+      }))}
+      runs={runs.map((run) => ({
+        id: run.id,
+        title: run.title,
+        status: run.status,
+        created_at: run.created_at,
+      }))}
+    >
+      <div className="space-y-6">
+        <Card className="border-ink-200/70 bg-white/95">
+          <CardHeader className="flex-row items-start justify-between gap-6">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-ink-400">Run overview</p>
+              <CardTitle className="text-2xl">{session.title}</CardTitle>
+              <p className="text-sm text-ink-500">
+                {session.provider} / {session.model} · {session.time_limit_minutes} minutes
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <InviteMoreDialog sessionId={session.id} />
+              <Button asChild variant="outline">
+                <a href={`/api/sessions/${session.id}/export.csv`}>Download CSV</a>
+              </Button>
+              <Button asChild variant="outline">
+                <a href={`/api/sessions/${session.id}/export.pdf`}>Download PDF</a>
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
 
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
@@ -78,7 +117,7 @@ export const SessionPage = async ({ params }: { params: { id: string } }) => {
           </Card>
         </div>
 
-        <Separator className="my-8" />
+        <Separator />
 
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-ink-950">Participants</h2>
@@ -115,6 +154,6 @@ export const SessionPage = async ({ params }: { params: { id: string } }) => {
           )}
         </div>
       </div>
-    </div>
+    </SurveyShell>
   );
 };

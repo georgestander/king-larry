@@ -49,6 +49,7 @@ export const SurveyPublishPage = async ({ params }: { params: { id: string } }) 
     >
       {activeVersion ? (
         <SurveyPublishClient
+          scriptId={script.id}
           versionId={activeVersion.id}
           defaultTitle={script.title}
         />
