@@ -1,6 +1,6 @@
 import type { InterviewDefinition } from "@/lib/interview-types";
 
-export const defaultInterview: InterviewDefinition = {
+export const defaultInterviewTemplate: InterviewDefinition = {
   meta: {
     id: "team-ai-usage",
     version: "1.0",

@@ -3,7 +3,7 @@
 import { SurveyShell } from "@/app/components/builder/SurveyShell";
 import { buildSurveySteps } from "@/app/components/builder/steps";
 import { SurveyScriptClient } from "@/app/pages/survey-script-client";
-import { defaultInterview, defaultPrompt } from "@/data/default-script";
+import { defaultInterviewTemplate, defaultPrompt } from "@/data/default-script";
 import { editorDraftFromInterview } from "@/lib/editor-to-interview";
 import { getActiveScriptVersion, getScript, listScriptVersions, listSessionsByScriptId } from "@/server/store";
 
@@ -31,7 +31,7 @@ export const SurveyScriptPage = async ({ params }: { params: { id: string } }) =
     hasRuns: runs.length > 0,
   });
 
-  let initialDraft = editorDraftFromInterview(defaultInterview);
+  let initialDraft = editorDraftFromInterview(defaultInterviewTemplate);
   initialDraft.meta.title = script.title;
   initialDraft.promptMarkdown = defaultPrompt.trim();
 
@@ -50,7 +50,7 @@ export const SurveyScriptPage = async ({ params }: { params: { id: string } }) =
     }
   }
 
-  initialDraft.promptMarkdown = activeVersion?.prompt_markdown ?? initialDraft.promptMarkdown;
+  initialDraft.promptMarkdown = defaultPrompt.trim();
 
   return (
     <SurveyShell

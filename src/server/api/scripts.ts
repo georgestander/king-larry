@@ -4,7 +4,7 @@ import { generateText } from "ai";
 
 import { getModel, resolveProvider } from "@/lib/ai";
 import { normalizeGeneratedInterview } from "@/lib/interview-normalize";
-import { defaultInterview, defaultPrompt } from "@/data/default-script";
+import { defaultInterviewTemplate, defaultPrompt } from "@/data/default-script";
 import { editorDraftFromInterview, interviewFromEditorDraft } from "@/lib/editor-to-interview";
 import { validateEditorDraft } from "@/lib/editor-validators";
 import { validateInterviewDefinition } from "@/lib/interview-validators";
@@ -37,7 +37,7 @@ export const handleScriptsGenerate = async (request: Request) => {
   }
 
   if (isMockAiEnabled()) {
-    const draft = editorDraftFromInterview(defaultInterview);
+    const draft = editorDraftFromInterview(defaultInterviewTemplate);
     draft.meta.title = body.title;
     draft.meta.subtitle = body.audience ? `Audience: ${body.audience}` : draft.meta.subtitle;
     draft.briefingMarkdown = body.goal ? `Goal: ${body.goal}` : draft.briefingMarkdown;

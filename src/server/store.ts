@@ -2,7 +2,7 @@
 
 import { getDb } from "@/db/client";
 import type { ScriptRow, ScriptVersionRow, SessionRow, ParticipantRow } from "@/db/types";
-import { defaultInterview, defaultPrompt } from "@/data/default-script";
+import { defaultInterviewTemplate, defaultPrompt } from "@/data/default-script";
 import { validateInterviewDefinition } from "@/lib/interview-validators";
 import { createInviteToken } from "@/lib/tokens";
 
@@ -15,7 +15,7 @@ export const ensureSeedData = async () => {
   const existing = await db.selectFrom("scripts").select(["id"]).limit(1).execute();
   if (existing.length > 0) return;
 
-  const validation = validateInterviewDefinition(defaultInterview);
+  const validation = validateInterviewDefinition(defaultInterviewTemplate);
   if (!validation.ok) {
     throw new Error(`Seed interview invalid: ${validation.errors.join(", ")}`);
   }
@@ -27,7 +27,7 @@ export const ensureSeedData = async () => {
     .insertInto("scripts")
     .values({
       id: scriptId,
-      title: defaultInterview.meta.title,
+      title: defaultInterviewTemplate.meta.title,
       created_at: nowIso(),
       active_version_id: versionId,
     })
@@ -39,7 +39,7 @@ export const ensureSeedData = async () => {
       id: versionId,
       script_id: scriptId,
       version: 1,
-      json: JSON.stringify(defaultInterview, null, 2),
+      json: JSON.stringify(defaultInterviewTemplate, null, 2),
       prompt_markdown: defaultPrompt.trim(),
       status: "active",
       created_at: nowIso(),

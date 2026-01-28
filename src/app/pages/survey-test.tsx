@@ -3,7 +3,7 @@
 import { SurveyShell } from "@/app/components/builder/SurveyShell";
 import { buildSurveySteps } from "@/app/components/builder/steps";
 import { SurveyTestClient } from "@/app/pages/survey-test-client";
-import { defaultInterview, defaultPrompt } from "@/data/default-script";
+import { defaultInterviewTemplate, defaultPrompt } from "@/data/default-script";
 import { resolveProvider } from "@/lib/ai";
 import { editorDraftFromInterview } from "@/lib/editor-to-interview";
 import { getDefaultModel } from "@/lib/models";
@@ -33,7 +33,7 @@ export const SurveyTestPage = async ({ params }: { params: { id: string } }) => 
     hasRuns: runs.length > 0,
   });
 
-  let draft = editorDraftFromInterview(defaultInterview);
+  let draft = editorDraftFromInterview(defaultInterviewTemplate);
   draft.meta.title = script.title;
   draft.promptMarkdown = defaultPrompt.trim();
 
@@ -52,7 +52,7 @@ export const SurveyTestPage = async ({ params }: { params: { id: string } }) => 
     }
   }
 
-  draft.promptMarkdown = activeVersion?.prompt_markdown ?? draft.promptMarkdown;
+  draft.promptMarkdown = defaultPrompt.trim();
 
   const initialProvider = resolveProvider();
   const initialModel = getDefaultModel(initialProvider);
