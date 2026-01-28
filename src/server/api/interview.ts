@@ -15,7 +15,7 @@ import {
   markParticipantCompleted,
   markParticipantStarted,
 } from "@/server/store";
-import { errorResponse, parseJsonBody, textStreamResponse } from "@/server/api/utils";
+import { errorResponse, json, parseJsonBody, textStreamResponse } from "@/server/api/utils";
 
 const extractMessageText = (message: UIMessage | undefined) => {
   if (!message) return "";
@@ -107,4 +107,15 @@ export const handleInterviewMessage = async (request: Request, token: string) =>
   });
 
   return textStreamResponse(stream);
+};
+
+export const handleInterviewComplete = async (request: Request, token: string) => {
+  if (request.method !== "POST") return errorResponse(405, "Method not allowed");
+  const participant = await getParticipantByToken(token);
+  if (!participant) return errorResponse(403, "Invalid invite token");
+  if (participant.status === "completed") {
+    return json({ status: "completed" });
+  }
+  await markParticipantCompleted(participant.id, "manual");
+  return json({ status: "completed" });
 };

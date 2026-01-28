@@ -20,6 +20,7 @@ export default function InterviewClient({ token, sessionTitle, timeLimitMinutes 
   const [started, setStarted] = useState(false);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [input, setInput] = useState("");
+  const [completed, setCompleted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const transport = useMemo(
@@ -66,6 +67,11 @@ export default function InterviewClient({ token, sessionTitle, timeLimitMinutes 
     const message = input.trim();
     setInput("");
     await sendMessage({ text: message });
+  };
+
+  const handleComplete = async () => {
+    await fetch(`/api/interview/${token}/complete`, { method: "POST" });
+    setCompleted(true);
   };
 
   return (
@@ -117,6 +123,17 @@ export default function InterviewClient({ token, sessionTitle, timeLimitMinutes 
                   <Send className="h-4 w-4" />
                 </Button>
               </form>
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>{completed ? "Interview completed" : "You can end anytime."}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleComplete}
+                  disabled={completed}
+                >
+                  Finish interview
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

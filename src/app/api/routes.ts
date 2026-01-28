@@ -1,7 +1,7 @@
 import { route } from "rwsdk/router";
 
 import { handleExportCsv, handleExportPdf } from "@/server/api/exports";
-import { handleInterviewMessage } from "@/server/api/interview";
+import { handleInterviewComplete, handleInterviewMessage } from "@/server/api/interview";
 import { handleScripts, handleScriptRollback, handleScriptsGenerate, handleScriptVersions } from "@/server/api/scripts";
 import { handleSessionDetail, handleSessionInvite, handleSessions } from "@/server/api/sessions";
 
@@ -14,6 +14,7 @@ export const apiRoutes = [
   route("/api/sessions/:id", ({ request, params }) => handleSessionDetail(request, params.id)),
   route("/api/sessions/:id/invite", ({ request, params }) => handleSessionInvite(request, params.id)),
   route("/api/interview/:token/message", ({ request, params }) => handleInterviewMessage(request, params.token)),
+  route("/api/interview/:token/complete", ({ request, params }) => handleInterviewComplete(request, params.token)),
   route("/api/sessions/:id/export.csv", ({ params }) => handleExportCsv(params.id)),
   route("/api/sessions/:id/export.pdf", ({ params }) => handleExportPdf(params.id)),
 ];
