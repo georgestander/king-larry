@@ -17,6 +17,7 @@ import {
   getScriptVersion,
   listScripts,
   listScriptVersions,
+  updateScriptTitle,
 } from "@/server/store";
 import { errorResponse, json, parseJsonBody } from "@/server/api/utils";
 
@@ -188,6 +189,9 @@ export const handleScriptVersions = async (request: Request, scriptId: string) =
       if (!validation.ok) {
         return errorResponse(422, "Draft failed validation", validation.errors);
       }
+      if (validation.data.meta.title !== script.title) {
+        await updateScriptTitle(scriptId, validation.data.meta.title);
+      }
       const promptMarkdown = ensureString(validation.data.promptMarkdown, defaultPrompt);
       const interview = interviewFromEditorDraft(validation.data, { version: (active?.version ?? 0) + 1 });
       const jsonValue = JSON.stringify(interview, null, 2);
@@ -223,6 +227,9 @@ export const handleScriptVersions = async (request: Request, scriptId: string) =
     const promptMarkdown = ensureString(body.promptMarkdown, defaultPrompt);
     const editorDraft = editorDraftFromInterview(validation.data);
     editorDraft.promptMarkdown = promptMarkdown;
+    if (editorDraft.meta.title !== script.title) {
+      await updateScriptTitle(scriptId, editorDraft.meta.title);
+    }
     const editorJson = JSON.stringify(editorDraft, null, 2);
 
     const next = await createScriptVersion(

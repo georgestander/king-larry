@@ -1,9 +1,11 @@
 "use server";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { SurveyShell } from "@/app/components/builder/SurveyShell";
 import { buildSurveySteps } from "@/app/components/builder/steps";
-import { getScript, listScriptVersions, listSessionsByScriptId } from "@/server/store";
+import { SurveyScriptClient } from "@/app/pages/survey-script-client";
+import { defaultInterview, defaultPrompt } from "@/data/default-script";
+import { editorDraftFromInterview } from "@/lib/editor-to-interview";
+import { getActiveScriptVersion, getScript, listScriptVersions, listSessionsByScriptId } from "@/server/store";
 
 export const SurveyScriptPage = async ({ params }: { params: { id: string } }) => {
   const [script, versions, runs] = await Promise.all([
@@ -20,13 +22,35 @@ export const SurveyScriptPage = async ({ params }: { params: { id: string } }) =
     );
   }
 
+  const activeVersion = await getActiveScriptVersion(script.id);
   const steps = buildSurveySteps({
     surveyId: script.id,
     activeStep: "script",
     hasScript: versions.length > 0,
-    hasPreview: false,
+    hasPreview: Boolean(activeVersion?.preview_transcript_json),
     hasRuns: runs.length > 0,
   });
+
+  let initialDraft = editorDraftFromInterview(defaultInterview);
+  initialDraft.meta.title = script.title;
+  initialDraft.promptMarkdown = defaultPrompt.trim();
+
+  if (activeVersion?.editor_json) {
+    try {
+      initialDraft = JSON.parse(activeVersion.editor_json) as typeof initialDraft;
+    } catch {
+      initialDraft = initialDraft;
+    }
+  } else if (activeVersion?.json) {
+    try {
+      const parsed = JSON.parse(activeVersion.json);
+      initialDraft = editorDraftFromInterview(parsed);
+    } catch {
+      initialDraft = initialDraft;
+    }
+  }
+
+  initialDraft.promptMarkdown = activeVersion?.prompt_markdown ?? initialDraft.promptMarkdown;
 
   return (
     <SurveyShell
@@ -46,20 +70,11 @@ export const SurveyScriptPage = async ({ params }: { params: { id: string } }) =
         created_at: run.created_at,
       }))}
     >
-      <Card className="border-ink-200/70 bg-white/95">
-        <CardHeader>
-          <CardTitle className="text-xl">Script editor</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-ink-600">
-          <p>Human-friendly script editing will live here.</p>
-          <a
-            className="inline-flex rounded-lg bg-ink-900 px-4 py-2 text-sm font-semibold text-ink-50"
-            href={`/surveys/${script.id}/test`}
-          >
-            Continue to test chat
-          </a>
-        </CardContent>
-      </Card>
+      <SurveyScriptClient
+        scriptId={script.id}
+        versionId={activeVersion?.id ?? null}
+        initialDraft={initialDraft}
+      />
     </SurveyShell>
   );
 };

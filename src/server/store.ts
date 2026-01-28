@@ -126,6 +126,15 @@ export const getScript = async (scriptId: string) => {
   return db.selectFrom("scripts").selectAll().where("id", "=", scriptId).executeTakeFirst() ?? null;
 };
 
+export const updateScriptTitle = async (scriptId: string, title: string) => {
+  const db = getDb();
+  await db
+    .updateTable("scripts")
+    .set({ title })
+    .where("id", "=", scriptId)
+    .execute();
+};
+
 export const listScriptVersions = async (scriptId: string) => {
   const db = getDb();
   return db
