@@ -3,6 +3,8 @@
 import { generateText } from "ai";
 
 import { getModel, resolveProvider } from "@/lib/ai";
+import { normalizeGeneratedInterview } from "@/lib/interview-normalize";
+import { defaultPrompt } from "@/data/default-script";
 import { validateInterviewDefinition } from "@/lib/interview-validators";
 import {
   archiveScriptVersion,
@@ -50,25 +52,57 @@ Notes: ${body.notes ?? "N/A"}
 
 Return ONLY valid JSON.`;
 
-  const { text } = await generateText({
-    model,
-    prompt,
-  });
+  const parseJsonFromText = (text: string) => {
+    try {
+      return JSON.parse(text) as { script: unknown; promptMarkdown: string };
+    } catch {
+      const start = text.indexOf("{");
+      const end = text.lastIndexOf("}");
+      if (start === -1 || end === -1 || end <= start) return null;
+      try {
+        return JSON.parse(text.slice(start, end + 1)) as { script: unknown; promptMarkdown: string };
+      } catch {
+        return null;
+      }
+    }
+  };
 
-  let parsed: { script: unknown; promptMarkdown: string };
-  try {
-    parsed = JSON.parse(text) as { script: unknown; promptMarkdown: string };
-  } catch (error) {
-    return errorResponse(422, "Failed to parse generated JSON", { raw: text });
+  const generateOnce = async (promptInput: string) => {
+    const { text } = await generateText({
+      model,
+      prompt: promptInput,
+    });
+    return { text, parsed: parseJsonFromText(text) };
+  };
+
+  let result = await generateOnce(prompt);
+  if (!result.parsed) {
+    console.error("Script generation parse failed", result.text.slice(0, 500));
+    result = await generateOnce(`${prompt}\n\nFix any errors and return ONLY valid JSON.`);
   }
 
-  const validation = validateInterviewDefinition(parsed.script);
+  if (!result.parsed) {
+    console.error("Script generation parse failed twice", result.text.slice(0, 500));
+    return errorResponse(422, "Failed to parse generated JSON");
+  }
+
+  const normalized = normalizeGeneratedInterview(result.parsed.script, {
+    title: body.title,
+    goal: body.goal,
+    audience: body.audience,
+  });
+  const validation = validateInterviewDefinition(normalized);
   if (!validation.ok) {
+    console.error("Script validation failed", validation.errors);
     return errorResponse(422, "Generated script failed validation", validation.errors);
   }
 
-  return json({ script: validation.data, promptMarkdown: parsed.promptMarkdown ?? "" });
+  const promptMarkdown = ensureString(result.parsed.promptMarkdown, defaultPrompt);
+  return json({ script: validation.data, promptMarkdown });
 };
+
+const ensureString = (value: unknown, fallback: string) =>
+  typeof value === "string" && value.trim() ? value.trim() : fallback;
 
 export const handleScripts = async (request: Request) => {
   if (request.method === "GET") {

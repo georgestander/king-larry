@@ -66,10 +66,12 @@ const postJson = async <T,>(url: string, body: unknown): Promise<T> => {
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    const message = typeof (payload as { error?: string }).error === "string"
+    const baseMessage = typeof (payload as { error?: string }).error === "string"
       ? (payload as { error?: string }).error
       : "Request failed";
-    throw new Error(message);
+    const details = (payload as { details?: unknown }).details;
+    const detailText = details ? ` (${JSON.stringify(details)})` : "";
+    throw new Error(`${baseMessage}${detailText}`);
   }
   return response.json() as Promise<T>;
 };
@@ -212,8 +214,8 @@ const CreateSurveyWizard = ({ scripts }: { scripts: ScriptSummary[] }) => {
   const [goal, setGoal] = useState("");
   const [audience, setAudience] = useState("");
   const [notes, setNotes] = useState("");
-  const [provider, setProvider] = useState<ModelProvider>("anthropic");
-  const [model, setModel] = useState(getDefaultModel("anthropic"));
+  const [provider, setProvider] = useState<ModelProvider>("openai");
+  const [model, setModel] = useState(getDefaultModel("openai"));
   const [generated, setGenerated] = useState<{ json: string; prompt: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

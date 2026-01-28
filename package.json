@@ -21,7 +21,8 @@
     "check": "npm run generate && npm run types",
     "types": "tsc",
     "test": "vitest run --config vitest.config.ts",
-    "test:watch": "vitest --config vitest.config.ts"
+    "test:watch": "vitest --config vitest.config.ts",
+    "test:smoke": "bash scripts/smoke/agent-browser.sh"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.28",
