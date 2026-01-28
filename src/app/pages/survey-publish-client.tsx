@@ -9,8 +9,9 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { ErrorBanner, type ErrorInfo } from "@/app/components/alerts/ErrorBanner";
+import { loadAiSettings } from "@/app/lib/ai-settings";
 import type { InterviewDefinition } from "@/lib/interview-types";
-import { getDefaultModel, type ModelProvider } from "@/lib/models";
+import type { ModelProvider } from "@/lib/models";
 
 type SurveyPublishClientProps = {
   scriptId: string;
@@ -139,13 +140,14 @@ export const SurveyPublishClient = ({
   const [sessionTitle, setSessionTitle] = useState(`${defaultTitle} Run`);
   const [timeLimit, setTimeLimit] = useState("15");
   const [provider, setProvider] = useState<ModelProvider>("openai");
-  const [model, setModel] = useState(getDefaultModel("openai"));
+  const [model, setModel] = useState<string>("");
   const [acknowledgeSplit, setAcknowledgeSplit] = useState(false);
-  const [availableProviders, setAvailableProviders] = useState({
+  const [availableProviders, setAvailableProviders] = useState<Record<ModelProvider, boolean>>({
     openai: true,
     anthropic: true,
     openrouter: true,
   });
+  const [aiReady, setAiReady] = useState(false);
   const [inviteEmails, setInviteEmails] = useState("");
   const [anonymousCount, setAnonymousCount] = useState("0");
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -167,26 +169,15 @@ export const SurveyPublishClient = ({
   }, [inviteBaseUrl]);
 
   useEffect(() => {
-    fetch("/api/config")
-      .then((response) => response.json())
-      .then((data) => {
-        const providers = (data as { providers?: typeof availableProviders }).providers;
-        const defaults = (data as { defaults?: { provider?: ModelProvider; model?: string; timeLimitMinutes?: number } }).defaults;
-        if (providers) setAvailableProviders(providers);
-        if (defaults?.provider) setProvider(defaults.provider);
-        if (defaults?.model) setModel(defaults.model);
-        if (typeof defaults?.timeLimitMinutes === "number") setTimeLimit(String(defaults.timeLimitMinutes));
+    loadAiSettings()
+      .then(({ settings, providers }) => {
+        setProvider(settings.provider);
+        setModel(settings.model);
+        setAvailableProviders(providers);
       })
-      .catch(() => null);
+      .catch(() => null)
+      .finally(() => setAiReady(true));
   }, []);
-
-  useEffect(() => {
-    if (!availableProviders[provider]) {
-      const next = (Object.keys(availableProviders) as ModelProvider[]).find((key) => availableProviders[key]) ?? provider;
-      setProvider(next);
-      setModel(getDefaultModel(next));
-    }
-  }, [availableProviders, provider]);
 
   const refreshMetrics = async (id: string) => {
     const response = await fetch(`/api/sessions/${id}`);
@@ -199,12 +190,24 @@ export const SurveyPublishClient = ({
     setSaving(true);
     setError(null);
     try {
+      const resolved = await loadAiSettings();
+      setProvider(resolved.settings.provider);
+      setModel(resolved.settings.model);
+      setAvailableProviders(resolved.providers);
+
+      if (!resolved.providers[resolved.settings.provider]) {
+        setError({
+          message: "No AI provider configured. Set an API key and choose a provider/model in Settings.",
+        });
+        return;
+      }
+
       const session = await postJson<{ sessionId: string }>("/api/sessions", {
         title: sessionTitle || "Survey Run",
         scriptVersionId: versionId,
         timeLimitMinutes: Number(timeLimit) || 15,
-        provider,
-        model,
+        provider: resolved.settings.provider,
+        model: resolved.settings.model,
       });
       setSessionId(session.sessionId);
       await refreshMetrics(session.sessionId);
@@ -322,6 +325,16 @@ export const SurveyPublishClient = ({
           <CardDescription>Confirm what you’re about to publish, then create a live run.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {aiReady && !availableProviders[provider] && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-950">
+              <p className="font-semibold">AI provider not configured</p>
+              <p className="mt-1 text-xs text-amber-900/80">
+                Configure provider + model in{" "}
+                <a href="/settings" className="font-semibold underline underline-offset-4">Settings</a>{" "}
+                before publishing a live run.
+              </p>
+            </div>
+          )}
           {!sessionId && latestResponseRun && (
             <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-950">
               <p className="font-semibold text-amber-950">Heads up: you already have responses</p>
@@ -415,7 +428,15 @@ export const SurveyPublishClient = ({
           </div>
           <ErrorBanner error={error} />
           {!sessionId ? (
-            <Button onClick={handlePublish} disabled={saving || (requiresResponseGate && latestResponseRun ? !acknowledgeSplit : false)}>
+            <Button
+              onClick={handlePublish}
+              disabled={
+                saving
+                || !aiReady
+                || !availableProviders[provider]
+                || (requiresResponseGate && latestResponseRun ? !acknowledgeSplit : false)
+              }
+            >
               <Sparkles className="mr-2 h-4 w-4" />
               Publish run
             </Button>
