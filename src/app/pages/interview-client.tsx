@@ -17,6 +17,7 @@ export default function InterviewClient({ token, sessionTitle, timeLimitMinutes 
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [input, setInput] = useState("");
   const [completed, setCompleted] = useState(false);
+  const [layout, setLayout] = useState<"page" | "embedded">("page");
 
   const transport = useMemo(
     () => new TextStreamChatTransport({ api: `/api/interview/${token}/message` }),
@@ -31,6 +32,13 @@ export default function InterviewClient({ token, sessionTitle, timeLimitMinutes 
     const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
     return Math.max(0, timeLimitMinutes * 60 - elapsedSeconds);
   }, [startedAt, timeLimitMinutes]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("embed") === "1" || params.get("embed") === "true") {
+      setLayout("embedded");
+    }
+  }, []);
 
   useEffect(() => {
     if (!startedAt) return;
@@ -81,6 +89,7 @@ export default function InterviewClient({ token, sessionTitle, timeLimitMinutes 
       isLoading={isLoading}
       completed={completed}
       showFinish
+      layout={layout}
     />
   );
 }

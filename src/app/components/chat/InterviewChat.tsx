@@ -26,6 +26,7 @@ type InterviewChatProps = {
   isLoading: boolean;
   completed: boolean;
   showFinish?: boolean;
+  layout?: "page" | "embedded";
 };
 
 const getMessageText = (message: UIMessage) => {
@@ -100,8 +101,10 @@ export const InterviewChat = ({
   isLoading,
   completed,
   showFinish = true,
+  layout = "page",
 }: InterviewChatProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isEmbedded = layout === "embedded";
 
   useEffect(() => {
     const container = scrollRef.current;
@@ -115,9 +118,16 @@ export const InterviewChat = ({
     }
   }, [messages, isLoading]);
 
+  const outerClassName = isEmbedded
+    ? ""
+    : "min-h-screen bg-ink-50 [background-image:radial-gradient(1200px_circle_at_top,_rgba(255,255,255,0.9),_transparent)]";
+  const containerClassName = isEmbedded
+    ? ""
+    : "mx-auto flex max-w-4xl flex-col gap-6 px-6 py-10";
+
   return (
-    <div className="min-h-screen bg-ink-50 [background-image:radial-gradient(1200px_circle_at_top,_rgba(255,255,255,0.9),_transparent)]">
-      <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-10">
+    <div className={outerClassName}>
+      <div className={containerClassName}>
         <Card className="border-ink-200/70 bg-white/90">
           <CardHeader className="flex-row items-center justify-between">
             <div>
@@ -141,41 +151,41 @@ export const InterviewChat = ({
               <div className="flex flex-col gap-4">
                 <div className="flex-1 space-y-4 rounded-2xl border border-ink-200/70 bg-white/80 p-5 shadow-[0_20px_40px_-35px_rgba(15,23,42,0.45)]">
                   <div ref={scrollRef} className="max-h-[55vh] min-h-[220px] space-y-4 overflow-y-auto pr-2">
-                  {messages.map((message) => (
-                    <div key={message.id} className={message.role === "user" ? "text-right" : "text-left"}>
-                      <div
-                        className={
-                          message.role === "user"
-                            ? "ml-auto inline-block max-w-[80%] rounded-2xl bg-ink-900 px-4 py-2 text-sm text-ink-50"
-                            : "inline-block max-w-[80%] rounded-2xl bg-ink-100/80 px-4 py-2 text-sm text-ink-900"
-                        }
-                      >
-                        {message.role !== "user"
-                          ? (
-                            <div className="space-y-2 whitespace-pre-wrap">
-                              {splitNarrativeAndQuestions(getMessageText(message)).map((segment, index) => (
-                                <p
-                                  key={`${message.id}-${index}`}
-                                  className={segment.kind === "question" ? "font-semibold" : ""}
-                                >
-                                  {segment.text}
-                                </p>
-                              ))}
-                            </div>
-                          )
-                          : getMessageText(message)}
+                    {messages.map((message) => (
+                      <div key={message.id} className={message.role === "user" ? "text-right" : "text-left"}>
+                        <div
+                          className={
+                            message.role === "user"
+                              ? "ml-auto inline-block max-w-[80%] rounded-2xl bg-ink-900 px-4 py-2 text-sm text-ink-50"
+                              : "inline-block max-w-[80%] rounded-2xl bg-ink-100/80 px-4 py-2 text-sm text-ink-900"
+                          }
+                        >
+                          {message.role !== "user"
+                            ? (
+                              <div className="space-y-2 whitespace-pre-wrap">
+                                {splitNarrativeAndQuestions(getMessageText(message)).map((segment, index) => (
+                                  <p
+                                    key={`${message.id}-${index}`}
+                                    className={segment.kind === "question" ? "font-semibold" : ""}
+                                  >
+                                    {segment.text}
+                                  </p>
+                                ))}
+                              </div>
+                            )
+                            : getMessageText(message)}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                  {isLoading && (
-                    <div className="text-left">
-                      <div className="inline-flex items-center gap-2 rounded-2xl bg-ink-100/80 px-4 py-2 text-sm text-ink-700">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Loading response…
+                    ))}
+                    {isLoading && (
+                      <div className="text-left">
+                        <div className="inline-flex items-center gap-2 rounded-2xl bg-ink-100/80 px-4 py-2 text-sm text-ink-700">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading response…
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
                 </div>
                 <form onSubmit={onSubmit} className="flex gap-2">
                   <Input
