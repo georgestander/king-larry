@@ -138,9 +138,10 @@ export const handleScripts = async (request: Request) => {
       const title = body.title ?? validation.data.meta.title;
       if (!title) return errorResponse(400, "title is required");
       const promptMarkdown = ensureString(validation.data.promptMarkdown, defaultPrompt);
-      const interview = interviewFromEditorDraft(validation.data, { version: 1 });
+      const editorDraft = { ...validation.data, promptMarkdown };
+      const interview = interviewFromEditorDraft(editorDraft, { version: 1 });
       const jsonValue = JSON.stringify(interview, null, 2);
-      const editorJson = JSON.stringify(validation.data, null, 2);
+      const editorJson = JSON.stringify(editorDraft, null, 2);
       const { scriptId, versionId } = await createScript(title, jsonValue, promptMarkdown, editorJson);
       return json({ scriptId, versionId });
     }
@@ -201,10 +202,11 @@ export const handleScriptVersions = async (request: Request, scriptId: string) =
       if (validation.data.meta.title !== script.title) {
         await updateScriptTitle(scriptId, validation.data.meta.title);
       }
-      const promptMarkdown = ensureString(validation.data.promptMarkdown, defaultPrompt);
-      const interview = interviewFromEditorDraft(validation.data, { version: (active?.version ?? 0) + 1 });
+      const promptMarkdown = ensureString(active?.prompt_markdown, defaultPrompt);
+      const editorDraft = { ...validation.data, promptMarkdown };
+      const interview = interviewFromEditorDraft(editorDraft, { version: (active?.version ?? 0) + 1 });
       const jsonValue = JSON.stringify(interview, null, 2);
-      const editorJson = JSON.stringify(validation.data, null, 2);
+      const editorJson = JSON.stringify(editorDraft, null, 2);
       const next = await createScriptVersion(
         scriptId,
         jsonValue,
