@@ -1,6 +1,13 @@
 "use server";
 
-import { createParticipantInvites, createSession, getSession, getSessionParticipants, listSessions } from "@/server/store";
+import {
+  createParticipantInvites,
+  createSession,
+  getParticipantTranscript,
+  getSession,
+  getSessionParticipants,
+  listSessions,
+} from "@/server/store";
 import { errorResponse, json, parseJsonBody } from "@/server/api/utils";
 
 export const handleSessions = async (request: Request) => {
@@ -57,4 +64,12 @@ export const handleSessionInvite = async (request: Request, sessionId: string) =
 
   const participants = await createParticipantInvites(sessionId, body.emails);
   return json({ participants });
+};
+
+export const handleParticipantTranscript = async (request: Request, participantId: string) => {
+  if (request.method !== "GET") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const transcript = await getParticipantTranscript(participantId);
+  return json({ transcript });
 };

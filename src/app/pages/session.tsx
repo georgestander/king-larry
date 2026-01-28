@@ -4,6 +4,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Separator } from "@/app/components/ui/separator";
+import { TranscriptDialog } from "@/app/pages/session-client";
 import { getSessionSummary } from "@/server/store";
 
 export const SessionPage = async ({ params }: { params: { id: string } }) => {
@@ -57,6 +58,10 @@ export const SessionPage = async ({ params }: { params: { id: string } }) => {
             <CardContent className="flex items-center justify-between text-xs text-slate-400">
               <span>Invited: {new Date(participant.invited_at).toLocaleDateString()}</span>
               <span>{participant.completed_at ? `Completed: ${new Date(participant.completed_at).toLocaleDateString()}` : "Not completed"}</span>
+              <TranscriptDialog
+                participantId={participant.id}
+                label={participant.name ?? "Participant transcript"}
+              />
             </CardContent>
           </Card>
         ))}
