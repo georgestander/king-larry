@@ -7,9 +7,12 @@ export type ModelOption = {
 
 export const MODEL_OPTIONS: Record<ModelProvider, ModelOption[]> = {
   openai: [
+    { id: "gpt-5.2", label: "GPT-5.2 (latest)" },
+    { id: "gpt-5.1", label: "GPT-5.1" },
+    { id: "gpt-5", label: "GPT-5" },
+    { id: "gpt-5-mini", label: "GPT-5 mini" },
+    { id: "gpt-5-nano", label: "GPT-5 nano" },
     { id: "gpt-4.1", label: "GPT-4.1" },
-    { id: "gpt-4.1-mini", label: "GPT-4.1 mini" },
-    { id: "gpt-4.1-nano", label: "GPT-4.1 nano" },
     { id: "gpt-4o", label: "GPT-4o" },
   ],
   anthropic: [
