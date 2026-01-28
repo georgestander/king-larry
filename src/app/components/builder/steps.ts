@@ -26,7 +26,7 @@ export const buildSurveySteps = ({
   const isComplete = (step: SurveyStep["id"]) => {
     if (step === "brief") return hasScript;
     if (step === "script") return hasScript;
-    if (step === "test") return hasPreview;
+    if (step === "test") return hasPreview || activeStep === "publish" || activeStep === "results";
     if (step === "publish") return hasRuns;
     if (step === "results") return hasRuns;
     return false;
