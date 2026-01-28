@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Plus, Save, Trash2 } from "lucide-react";
 
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -44,6 +44,7 @@ export const SurveyScriptClient = ({ scriptId, versionId, initialDraft }: Survey
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<ErrorInfo | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [openSection, setOpenSection] = useState<"overview" | "questions">("questions");
 
   const handleMetaChange = (field: "title" | "subtitle", value: string) => {
     setDraft((prev) => ({
@@ -134,100 +135,129 @@ export const SurveyScriptClient = ({ scriptId, versionId, initialDraft }: Survey
 
   return (
     <div className="space-y-6">
-      <Card className="border-ink-200/70 bg-white/95">
-        <CardHeader className="flex-row items-start justify-between gap-4">
-          <div>
-            <CardTitle className="text-xl">Script editor</CardTitle>
-            <CardDescription>Edit questions and tone without touching JSON.</CardDescription>
-          </div>
-          <Button onClick={handleSave} disabled={saving}>
-            <Save className="mr-2 h-4 w-4" />
-            Save changes
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Title</Label>
-              <Input value={draft.meta.title} onChange={(event) => handleMetaChange("title", event.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Subtitle</Label>
-              <Input value={draft.meta.subtitle} onChange={(event) => handleMetaChange("subtitle", event.target.value)} />
-            </div>
-          </div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-ink-950">Script editor</h2>
+          <p className="text-sm text-ink-500">Edit questions and tone without touching JSON.</p>
+        </div>
+        <Button onClick={handleSave} disabled={saving}>
+          <Save className="mr-2 h-4 w-4" />
+          Save changes
+        </Button>
+      </div>
 
-          <div className="space-y-2">
-            <Label>Briefing</Label>
-            <Textarea
-              value={draft.briefingMarkdown}
-              onChange={(event) => setDraft((prev) => ({ ...prev, briefingMarkdown: event.target.value }))}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <details open={openSection === "overview"} className="group">
+        <summary
+          className="flex cursor-pointer items-center justify-between rounded-xl border border-ink-200/70 bg-white/95 px-4 py-3 text-sm font-semibold text-ink-900"
+          onClick={(event) => {
+            event.preventDefault();
+            setOpenSection("overview");
+          }}
+        >
+          Overview
+          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="mt-3">
+          <Card className="border-ink-200/70 bg-white/95">
+            <CardContent className="space-y-4 pt-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Title</Label>
+                  <Input value={draft.meta.title} onChange={(event) => handleMetaChange("title", event.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subtitle</Label>
+                  <Input value={draft.meta.subtitle} onChange={(event) => handleMetaChange("subtitle", event.target.value)} />
+                </div>
+              </div>
 
-      <Card className="border-ink-200/70 bg-white/95">
-        <CardHeader className="flex-row items-start justify-between gap-4">
-          <div>
-            <CardTitle className="text-lg">Questions</CardTitle>
-            <CardDescription>Reorder, refine, and add follow-ups.</CardDescription>
-          </div>
-          <Button variant="outline" size="sm" onClick={addQuestion}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add question
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {draft.questions.map((question, index) => (
-            <Card key={question.id} className="border-ink-200/60 bg-white/95">
-              <CardHeader className="flex-row items-start justify-between gap-4">
-                <div>
-                  <CardTitle className="text-base">Question {index + 1}</CardTitle>
-                  <CardDescription>ID {question.id}</CardDescription>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button size="icon" variant="ghost" onClick={() => moveQuestion(index, -1)}>
-                    <ArrowUp className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={() => moveQuestion(index, 1)}>
-                    <ArrowDown className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={() => removeQuestion(index)}>
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <Label>Topic</Label>
-                  <Input
-                    value={question.topic}
-                    onChange={(event) => handleQuestionChange(index, "topic", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Question</Label>
-                  <Textarea
-                    value={question.question}
-                    onChange={(event) => handleQuestionChange(index, "question", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Probes (one per line)</Label>
-                  <Textarea
-                    value={question.probes.join("\n")}
-                    onChange={(event) => handleQuestionChange(index, "probes", event.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          {draft.questions.length === 0 && (
-            <p className="text-sm text-ink-500">No questions yet. Add your first question.</p>
-          )}
-        </CardContent>
-      </Card>
+              <div className="space-y-2">
+                <Label>Briefing</Label>
+                <Textarea
+                  value={draft.briefingMarkdown}
+                  onChange={(event) => setDraft((prev) => ({ ...prev, briefingMarkdown: event.target.value }))}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </details>
+
+      <details open={openSection === "questions"} className="group">
+        <summary
+          className="flex cursor-pointer items-center justify-between rounded-xl border border-ink-200/70 bg-white/95 px-4 py-3 text-sm font-semibold text-ink-900"
+          onClick={(event) => {
+            event.preventDefault();
+            setOpenSection("questions");
+          }}
+        >
+          Questions ({draft.questions.length})
+          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="mt-3">
+          <Card className="border-ink-200/70 bg-white/95">
+            <CardHeader className="flex-row items-start justify-between gap-4">
+              <div>
+                <CardTitle className="text-lg">Question list</CardTitle>
+                <CardDescription>Reorder, refine, and add follow-ups.</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={addQuestion}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add question
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {draft.questions.map((question, index) => (
+                <Card key={question.id} className="border-ink-200/60 bg-white/95">
+                  <CardHeader className="flex-row items-start justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-base">Question {index + 1}</CardTitle>
+                      <CardDescription>ID {question.id}</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => moveQuestion(index, -1)}>
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => moveQuestion(index, 1)}>
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => removeQuestion(index)}>
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Topic</Label>
+                      <Input
+                        value={question.topic}
+                        onChange={(event) => handleQuestionChange(index, "topic", event.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Question</Label>
+                      <Textarea
+                        value={question.question}
+                        onChange={(event) => handleQuestionChange(index, "question", event.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Probes (one per line)</Label>
+                      <Textarea
+                        value={question.probes.join("\n")}
+                        onChange={(event) => handleQuestionChange(index, "probes", event.target.value)}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {draft.questions.length === 0 && (
+                <p className="text-sm text-ink-500">No questions yet. Add your first question.</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </details>
 
       <ErrorBanner error={error} />
       {savedAt && <p className="text-sm text-ink-500">Saved {new Date(savedAt).toLocaleTimeString()}</p>}
