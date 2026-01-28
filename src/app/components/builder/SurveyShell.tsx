@@ -90,7 +90,7 @@ export const SurveyShell = ({
     <div className="min-h-screen bg-ink-50 text-ink-950 [background-image:radial-gradient(1200px_circle_at_top,_rgba(255,255,255,0.9),_transparent)]">
       <header className="sticky top-0 z-30 border-b border-ink-200/60 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-6">
-          <div className="flex items-center gap-4">
+          <a href="/" className="flex items-center gap-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-200 bg-white">
               <img src="/logo.png" alt="Narrative Interviewer" className="h-8 w-8" />
             </div>
@@ -98,7 +98,7 @@ export const SurveyShell = ({
               <p className="text-[10px] uppercase tracking-[0.35em] text-ink-400">Narrative Interviewer</p>
               <h1 className="text-2xl font-semibold text-ink-950">Survey Studio</h1>
             </div>
-          </div>
+          </a>
           <div className="flex items-center gap-3">
             {activeStep && (
               <Badge variant="secondary">
@@ -146,7 +146,7 @@ export const SurveyShell = ({
         >
           <div className={cn("flex h-full flex-col", collapsed ? "items-center" : "items-stretch")}>
             <div className={cn("flex items-center justify-between p-4", collapsed ? "flex-col gap-3" : "gap-2")}>
-              <div className={cn("flex items-center gap-3", collapsed ? "flex-col" : "flex-row")}>
+              <a href="/" className={cn("flex items-center gap-3", collapsed ? "flex-col" : "flex-row")}>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-200 bg-white">
                   <img src="/logo.png" alt="Narrative Interviewer" className="h-8 w-8" />
                 </div>
@@ -157,7 +157,7 @@ export const SurveyShell = ({
                     {subtitle && <p className="text-xs text-ink-500">{subtitle}</p>}
                   </div>
                 )}
-              </div>
+              </a>
               <Button
                 size="icon"
                 variant="ghost"
