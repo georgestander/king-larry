@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, Plus, Save, Trash2 } from "lucide-react";
 
 import { Button } from "@/app/components/ui/button";
@@ -45,6 +45,18 @@ export const SurveyScriptClient = ({ scriptId, versionId, initialDraft }: Survey
   const [error, setError] = useState<ErrorInfo | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [openSection, setOpenSection] = useState<"overview" | "questions">("questions");
+  const [generationNotice, setGenerationNotice] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("notice") === "fallback") {
+      setGenerationNotice(true);
+      params.delete("notice");
+      const nextQuery = params.toString();
+      const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`;
+      window.history.replaceState({}, "", nextUrl);
+    }
+  }, []);
 
   const handleMetaChange = (field: "title" | "subtitle", value: string) => {
     setDraft((prev) => ({
@@ -135,6 +147,23 @@ export const SurveyScriptClient = ({ scriptId, versionId, initialDraft }: Survey
 
   return (
     <div className="space-y-6">
+      {generationNotice && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-950">
+          <p className="font-semibold">Loaded a starter template</p>
+          <p className="mt-1 text-amber-900">
+            The model couldn’t generate a script from your brief. You can edit this template and continue, or go back and try generating again.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => setGenerationNotice(false)}>
+              Dismiss
+            </Button>
+            <Button asChild size="sm" variant="secondary">
+              <a href="/surveys/new">Try generating again</a>
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-ink-950">Script editor</h2>

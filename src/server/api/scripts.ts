@@ -36,13 +36,17 @@ export const handleScriptsGenerate = async (request: Request) => {
     return errorResponse(400, "title and goal are required");
   }
 
-  if (isMockAiEnabled()) {
+  const fallbackDraft = () => {
     const draft = editorDraftFromInterview(defaultInterviewTemplate);
     draft.meta.title = body.title;
-    draft.meta.subtitle = body.audience ? `Audience: ${body.audience}` : draft.meta.subtitle;
+    draft.meta.subtitle = body.audience ? `Audience: ${body.audience}` : "Narrative Survey";
     draft.briefingMarkdown = body.goal ? `Goal: ${body.goal}` : draft.briefingMarkdown;
     draft.promptMarkdown = defaultPrompt.trim();
-    return json({ draft });
+    return draft;
+  };
+
+  if (isMockAiEnabled()) {
+    return json({ draft: fallbackDraft(), usedFallback: true, warning: "Mock AI mode enabled; using template." });
   }
 
   const provider = resolveProvider(body.provider);
@@ -79,40 +83,56 @@ Return ONLY valid JSON.`;
     }
   };
 
-  const generateOnce = async (promptInput: string) => {
-    const { text } = await generateText({
-      model,
-      prompt: promptInput,
+  try {
+    const generateOnce = async (promptInput: string) => {
+      const { text } = await generateText({
+        model,
+        prompt: promptInput,
+      });
+      return { text, parsed: parseJsonFromText(text) };
+    };
+
+    let result = await generateOnce(prompt);
+    if (!result.parsed) {
+      console.error("Script generation parse failed", result.text.slice(0, 500));
+      result = await generateOnce(`${prompt}\n\nFix any errors and return ONLY valid JSON.`);
+    }
+
+    if (!result.parsed) {
+      console.error("Script generation parse failed twice", result.text.slice(0, 500));
+      return json({
+        draft: fallbackDraft(),
+        usedFallback: true,
+        warning: "Could not generate a script from the model; loaded a starter template instead.",
+      });
+    }
+
+    const normalized = normalizeGeneratedInterview(result.parsed.script, {
+      title: body.title,
+      goal: body.goal,
+      audience: body.audience,
     });
-    return { text, parsed: parseJsonFromText(text) };
-  };
+    const validation = validateInterviewDefinition(normalized);
+    if (!validation.ok) {
+      console.error("Script validation failed", validation.errors);
+      return json({
+        draft: fallbackDraft(),
+        usedFallback: true,
+        warning: "Generated script failed validation; loaded a starter template instead.",
+      });
+    }
 
-  let result = await generateOnce(prompt);
-  if (!result.parsed) {
-    console.error("Script generation parse failed", result.text.slice(0, 500));
-    result = await generateOnce(`${prompt}\n\nFix any errors and return ONLY valid JSON.`);
+    const draft = editorDraftFromInterview(validation.data);
+    draft.promptMarkdown = defaultPrompt.trim();
+    return json({ draft });
+  } catch (err) {
+    console.error("Script generation failed", err);
+    return json({
+      draft: fallbackDraft(),
+      usedFallback: true,
+      warning: "Model request failed; loaded a starter template instead.",
+    });
   }
-
-  if (!result.parsed) {
-    console.error("Script generation parse failed twice", result.text.slice(0, 500));
-    return errorResponse(422, "Failed to parse generated JSON");
-  }
-
-  const normalized = normalizeGeneratedInterview(result.parsed.script, {
-    title: body.title,
-    goal: body.goal,
-    audience: body.audience,
-  });
-  const validation = validateInterviewDefinition(normalized);
-  if (!validation.ok) {
-    console.error("Script validation failed", validation.errors);
-    return errorResponse(422, "Generated script failed validation", validation.errors);
-  }
-
-  const promptMarkdown = ensureString(result.parsed.promptMarkdown, defaultPrompt);
-  const draft = editorDraftFromInterview(validation.data);
-  draft.promptMarkdown = promptMarkdown;
-  return json({ draft });
 };
 
 const ensureString = (value: unknown, fallback: string) =>

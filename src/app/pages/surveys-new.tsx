@@ -88,7 +88,7 @@ export const SurveysNewPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await postJson<{ draft: ScriptEditorDraft }>("/api/scripts/generate", {
+      const result = await postJson<{ draft: ScriptEditorDraft; usedFallback?: boolean; warning?: string }>("/api/scripts/generate", {
         title,
         goal,
         audience,
@@ -103,7 +103,8 @@ export const SurveysNewPage = () => {
         title: draft.meta.title,
         draft,
       });
-      window.location.href = `/surveys/${response.scriptId}/script`;
+      const noticeParam = result.usedFallback ? "?notice=fallback" : "";
+      window.location.href = `/surveys/${response.scriptId}/script${noticeParam}`;
     } catch (err) {
       if (err instanceof Error) {
         const details = (err as Error & { details?: unknown }).details;
