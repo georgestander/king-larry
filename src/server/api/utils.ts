@@ -17,7 +17,7 @@ export const parseJsonBody = async <T = unknown>(request: Request): Promise<T> =
 };
 
 export const textStreamResponse = (stream: ReadableStream<string>) =>
-  new Response(stream, {
+  new Response(stream.pipeThrough(new TextEncoderStream()), {
     status: 200,
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
