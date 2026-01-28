@@ -36,9 +36,9 @@ export default defineApp([
     layout(StudioLayout, [
       route("/", SurveysPage),
       route("/surveys", SurveysPage),
+      route("/surveys/new", SurveysNewPage),
       route("/settings", SettingsPage),
     ]),
-    route("/surveys/new", SurveysNewPage),
     route("/surveys/:id", SurveyOverviewPage),
     route("/surveys/:id/script", SurveyScriptPage),
     route("/surveys/:id/test", SurveyTestPage),

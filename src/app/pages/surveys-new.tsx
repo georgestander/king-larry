@@ -100,82 +100,80 @@ export const SurveysNewPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-ink-50 text-ink-950 [background-image:radial-gradient(1200px_circle_at_top,_rgba(255,255,255,0.9),_transparent)]">
-      <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-12">
-        <Card className="border-ink-200/70 bg-white/95">
-          <CardHeader>
-            <CardTitle>Create a new survey</CardTitle>
-            <CardDescription>Brief → Script → Test → Publish</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-ink-400">
-              <span className="text-ink-700">Brief</span>
-              <ArrowRight className="h-3 w-3" />
-              <span>Script</span>
-              <ArrowRight className="h-3 w-3" />
-              <span>Test</span>
-              <ArrowRight className="h-3 w-3" />
-              <span>Publish</span>
-            </div>
+    <section className="space-y-6">
+      <Card className="border-ink-200/70 bg-white/95">
+        <CardHeader>
+          <CardTitle>Create a new survey</CardTitle>
+          <CardDescription>Brief → Script → Test → Publish</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-ink-400">
+            <span className="text-ink-700">Brief</span>
+            <ArrowRight className="h-3 w-3" />
+            <span>Script</span>
+            <ArrowRight className="h-3 w-3" />
+            <span>Test</span>
+            <ArrowRight className="h-3 w-3" />
+            <span>Publish</span>
+          </div>
 
-            <div className="rounded-xl border border-ink-200 bg-ink-50/70 p-4 text-sm text-ink-700">
-              <p className="font-semibold text-ink-900">AI settings</p>
-              <p className="mt-1 text-xs text-ink-600">
-                Using <span className="font-semibold">{aiProvider}</span> ·{" "}
-                <span className="font-semibold">{aiModel || "—"}</span>.{" "}
-                <a href="/settings" className="font-semibold underline underline-offset-4">Change in Settings</a>.
+          <div className="rounded-xl border border-ink-200 bg-ink-50/70 p-4 text-sm text-ink-700">
+            <p className="font-semibold text-ink-900">AI settings</p>
+            <p className="mt-1 text-xs text-ink-600">
+              Using <span className="font-semibold">{aiProvider}</span> ·{" "}
+              <span className="font-semibold">{aiModel || "—"}</span>.{" "}
+              <a href="/settings" className="font-semibold underline underline-offset-4">Change in Settings</a>.
+            </p>
+            {!availableProviders[aiProvider] && (
+              <p className="mt-2 text-xs text-amber-900">
+                This provider is currently disabled (missing API key). Generation may fall back to a template.
               </p>
-              {!availableProviders[aiProvider] && (
-                <p className="mt-2 text-xs text-amber-900">
-                  This provider is currently disabled (missing API key). Generation may fall back to a template.
-                </p>
-              )}
-            </div>
+            )}
+          </div>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Survey title</Label>
-                <Input
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  placeholder="Onboarding Experience"
-                />
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Audience</Label>
-                  <Input
-                    value={audience}
-                    onChange={(event) => setAudience(event.target.value)}
-                    placeholder="New users"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Goal</Label>
-                <Textarea
-                  value={goal}
-                  onChange={(event) => setGoal(event.target.value)}
-                  placeholder="Understand why users drop during onboarding."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Notes</Label>
-                <Textarea
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  placeholder="Tone, constraints, specifics."
-                />
-              </div>
-              <ErrorBanner error={error} />
-              <Button onClick={handleGenerate} disabled={!title || !goal || loading} className="w-full">
-                <Sparkles className="mr-2 h-4 w-4" />
-                Generate script
-              </Button>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Survey title</Label>
+              <Input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Onboarding Experience"
+              />
             </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Audience</Label>
+                <Input
+                  value={audience}
+                  onChange={(event) => setAudience(event.target.value)}
+                  placeholder="New users"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Goal</Label>
+              <Textarea
+                value={goal}
+                onChange={(event) => setGoal(event.target.value)}
+                placeholder="Understand why users drop during onboarding."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="Tone, constraints, specifics."
+              />
+            </div>
+            <ErrorBanner error={error} />
+            <Button onClick={handleGenerate} disabled={!title || !goal || loading} className="w-full">
+              <Sparkles className="mr-2 h-4 w-4" />
+              Generate script
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </section>
   );
 };
