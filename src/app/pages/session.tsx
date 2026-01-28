@@ -4,7 +4,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Separator } from "@/app/components/ui/separator";
-import { TranscriptDialog } from "@/app/pages/session-client";
+import { InviteMoreDialog, ParticipantActions } from "@/app/pages/session-client";
 import { getSessionSummary } from "@/server/store";
 
 export const SessionPage = async ({ params }: { params: { id: string } }) => {
@@ -29,6 +29,7 @@ export const SessionPage = async ({ params }: { params: { id: string } }) => {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <InviteMoreDialog sessionId={session.id} />
           <Button asChild variant="outline">
             <a href={`/api/sessions/${session.id}/export.csv`}>Download CSV</a>
           </Button>
@@ -58,8 +59,9 @@ export const SessionPage = async ({ params }: { params: { id: string } }) => {
             <CardContent className="flex items-center justify-between text-xs text-slate-400">
               <span>Invited: {new Date(participant.invited_at).toLocaleDateString()}</span>
               <span>{participant.completed_at ? `Completed: ${new Date(participant.completed_at).toLocaleDateString()}` : "Not completed"}</span>
-              <TranscriptDialog
+              <ParticipantActions
                 participantId={participant.id}
+                inviteToken={participant.invite_token}
                 label={participant.name ?? "Participant transcript"}
               />
             </CardContent>
