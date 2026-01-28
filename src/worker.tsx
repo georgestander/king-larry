@@ -15,3 +15,5 @@ export default defineApp([
   },
   render(Document, [route("/", Home)]),
 ]);
+
+export { InterviewDbDO } from "@/durable-objects/interview-db";

@@ -12,6 +12,23 @@
   "compatibility_date": "2025-08-21",
   "compatibility_flags": ["nodejs_compat"],
 
+  // Durable Objects
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "INTERVIEW_DB",
+        "class_name": "InterviewDbDO"
+      }
+    ]
+  },
+
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_classes": ["InterviewDbDO"]
+    }
+  ],
+
   // Assets configuration
   "assets": {
     "binding": "ASSETS"
