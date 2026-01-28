@@ -5,8 +5,6 @@ import { RefreshCw, Save } from "lucide-react";
 import { TextStreamChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
 
-import { SurveyShell, type SurveyRunItem, type SurveyVersionItem } from "@/app/components/builder/SurveyShell";
-import type { SurveyStep } from "@/app/components/builder/steps";
 import { ErrorBanner, type ErrorInfo } from "@/app/components/alerts/ErrorBanner";
 import { InterviewChat } from "@/app/components/chat/InterviewChat";
 import { Button } from "@/app/components/ui/button";
@@ -16,10 +14,6 @@ import type { ScriptEditorDraft } from "@/lib/editor-types";
 import { type ModelProvider } from "@/lib/models";
 
 type SurveyTestShellClientProps = {
-  title: string;
-  steps: SurveyStep[];
-  versions: SurveyVersionItem[];
-  runs: SurveyRunItem[];
   scriptId: string;
   versionId: string | null;
   draft: ScriptEditorDraft;
@@ -27,10 +21,6 @@ type SurveyTestShellClientProps = {
 };
 
 export const SurveyTestShellClient = ({
-  title,
-  steps,
-  versions,
-  runs,
   scriptId,
   versionId,
   draft,
@@ -132,13 +122,19 @@ export const SurveyTestShellClient = ({
 
   const uiError: ErrorInfo | null = error ? { message: error.message } : null;
 
-  const sidebarPanels = ({ collapsed }: { collapsed: boolean }) => {
-    if (collapsed) return null;
-    return (
-      <div className="space-y-3">
-        <Card className="border-ink-200/70 bg-white/95">
-          <CardContent className="space-y-3 pt-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">Test tools</p>
+  return (
+    <div className="space-y-6">
+      <ErrorBanner error={uiError} />
+      {!isChatReady && (
+        <div className="rounded-2xl border border-ink-200 bg-white/90 p-4 text-sm text-ink-700">
+          Loading AI settings… Configure provider/model in{" "}
+          <a href="/settings" className="font-semibold underline underline-offset-4">Settings</a>.
+        </div>
+      )}
+
+      <Card className="border-ink-200/70 bg-white/95">
+        <CardContent className="space-y-3 pt-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-400">Test tools</p>
           <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
@@ -166,48 +162,27 @@ export const SurveyTestShellClient = ({
           {savedAt && (
             <p className="text-xs text-ink-500">Saved {new Date(savedAt).toLocaleTimeString()}</p>
           )}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  };
+        </CardContent>
+      </Card>
 
-  return (
-    <SurveyShell
-      title={title}
-      subtitle="Test chat"
-      steps={steps}
-      versions={versions}
-      runs={runs}
-      sidebarPanels={sidebarPanels}
-    >
-      <div className="space-y-6">
-        <ErrorBanner error={uiError} />
-        {!isChatReady && (
-          <div className="rounded-2xl border border-ink-200 bg-white/90 p-4 text-sm text-ink-700">
-            Loading AI settings… Configure provider/model in <a href="/settings" className="font-semibold underline underline-offset-4">Settings</a>.
-          </div>
-        )}
-
-        <InterviewChat
-          title={draft.meta.title}
-          subtitle="Preview — this is exactly what respondents see."
-          timeLimitMinutes={timeLimitMinutes}
-          remainingSeconds={remainingSeconds}
-          started={started}
-          messages={messages}
-          input={input}
-          onInputChange={setInput}
-          onSubmit={handleSubmit}
-          onStart={startInterview}
-          onComplete={() => setCompleted(true)}
-          startDisabled={!isChatReady}
-          inputDisabled={!isChatReady}
-          isLoading={isLoading}
-          completed={completed}
-          showFinish={false}
-        />
-      </div>
-    </SurveyShell>
+      <InterviewChat
+        title={draft.meta.title}
+        subtitle="Preview — this is exactly what respondents see."
+        timeLimitMinutes={timeLimitMinutes}
+        remainingSeconds={remainingSeconds}
+        started={started}
+        messages={messages}
+        input={input}
+        onInputChange={setInput}
+        onSubmit={handleSubmit}
+        onStart={startInterview}
+        onComplete={() => setCompleted(true)}
+        startDisabled={!isChatReady}
+        inputDisabled={!isChatReady}
+        isLoading={isLoading}
+        completed={completed}
+        showFinish={false}
+      />
+    </div>
   );
 };

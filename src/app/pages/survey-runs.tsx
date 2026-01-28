@@ -2,7 +2,7 @@
 
 import { Badge } from "@/app/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
-import { SurveyShell } from "@/app/components/builder/SurveyShell";
+import { SurveyTopBar } from "@/app/components/builder/SurveyTopBar";
 import { buildSurveySteps } from "@/app/components/builder/steps";
 import { getActiveScriptVersion, getScript, listScriptVersions, listSessionsByScriptId } from "@/server/store";
 
@@ -34,27 +34,29 @@ export const SurveyRunsPage = async ({ params }: { params: { id: string } }) => 
     new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
   return (
-    <SurveyShell
-      title={script.title}
-      subtitle="Runs"
-      steps={steps}
-      versions={versions.map((version) => ({
-        id: version.id,
-        version: version.version,
-        status: version.status,
-        created_at: version.created_at,
-      }))}
-      runs={runs.map((run) => ({
-        id: run.id,
-        title: run.title,
-        status: run.status,
-        created_at: run.created_at,
-        script_version_number: run.script_version_number,
-        sent_count: run.sent_count,
-        started_count: run.started_count,
-        completed_count: run.completed_count,
-      }))}
-    >
+    <div className="space-y-6">
+      <SurveyTopBar
+        surveyId={script.id}
+        title={script.title}
+        steps={steps}
+        versions={versions.map((version) => ({
+          id: version.id,
+          version: version.version,
+          status: version.status,
+          created_at: version.created_at,
+        }))}
+        runs={runs.map((run) => ({
+          id: run.id,
+          title: run.title,
+          status: run.status,
+          created_at: run.created_at,
+          script_version_number: run.script_version_number,
+          sent_count: run.sent_count,
+          started_count: run.started_count,
+          completed_count: run.completed_count,
+        }))}
+      />
+
       <Card className="border-ink-200/70 bg-white/95">
         <CardHeader>
           <CardTitle className="text-xl">Survey runs</CardTitle>
@@ -112,6 +114,6 @@ export const SurveyRunsPage = async ({ params }: { params: { id: string } }) => 
           )}
         </CardContent>
       </Card>
-    </SurveyShell>
+    </div>
   );
 };

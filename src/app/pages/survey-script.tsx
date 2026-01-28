@@ -1,6 +1,6 @@
 "use server";
 
-import { SurveyShell } from "@/app/components/builder/SurveyShell";
+import { SurveyTopBar } from "@/app/components/builder/SurveyTopBar";
 import { buildSurveySteps } from "@/app/components/builder/steps";
 import { SurveyScriptClient } from "@/app/pages/survey-script-client";
 import { defaultInterviewTemplate, defaultPrompt } from "@/data/default-script";
@@ -53,28 +53,34 @@ export const SurveyScriptPage = async ({ params }: { params: { id: string } }) =
   initialDraft.promptMarkdown = defaultPrompt.trim();
 
   return (
-    <SurveyShell
-      title={script.title}
-      subtitle="Script editor"
-      steps={steps}
-      versions={versions.map((version) => ({
-        id: version.id,
-        version: version.version,
-        status: version.status,
-        created_at: version.created_at,
-      }))}
-      runs={runs.map((run) => ({
-        id: run.id,
-        title: run.title,
-        status: run.status,
-        created_at: run.created_at,
-      }))}
-    >
+    <div className="space-y-6">
+      <SurveyTopBar
+        surveyId={script.id}
+        title={script.title}
+        steps={steps}
+        versions={versions.map((version) => ({
+          id: version.id,
+          version: version.version,
+          status: version.status,
+          created_at: version.created_at,
+        }))}
+        runs={runs.map((run) => ({
+          id: run.id,
+          title: run.title,
+          status: run.status,
+          created_at: run.created_at,
+          script_version_number: run.script_version_number,
+          sent_count: run.sent_count,
+          started_count: run.started_count,
+          completed_count: run.completed_count,
+        }))}
+      />
+
       <SurveyScriptClient
         scriptId={script.id}
         versionId={activeVersion?.id ?? null}
         initialDraft={initialDraft}
       />
-    </SurveyShell>
+    </div>
   );
 };

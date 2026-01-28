@@ -1,6 +1,7 @@
 "use server";
 
 import { buildSurveySteps } from "@/app/components/builder/steps";
+import { SurveyTopBar } from "@/app/components/builder/SurveyTopBar";
 import { SurveyTestShellClient } from "@/app/pages/survey-test-shell-client";
 import { defaultInterviewTemplate, defaultPrompt } from "@/data/default-script";
 import { editorDraftFromInterview } from "@/lib/editor-to-interview";
@@ -52,25 +53,35 @@ export const SurveyTestPage = async ({ params }: { params: { id: string } }) => 
   draft.promptMarkdown = defaultPrompt.trim();
 
   return (
-    <SurveyTestShellClient
-      title={script.title}
-      steps={steps}
-      versions={versions.map((version) => ({
-        id: version.id,
-        version: version.version,
-        status: version.status,
-        created_at: version.created_at,
-      }))}
-      runs={runs.map((run) => ({
-        id: run.id,
-        title: run.title,
-        status: run.status,
-        created_at: run.created_at,
-      }))}
-      scriptId={script.id}
-      versionId={activeVersion?.id ?? null}
-      draft={draft}
-      timeLimitMinutes={15}
-    />
+    <div className="space-y-6">
+      <SurveyTopBar
+        surveyId={script.id}
+        title={script.title}
+        steps={steps}
+        versions={versions.map((version) => ({
+          id: version.id,
+          version: version.version,
+          status: version.status,
+          created_at: version.created_at,
+        }))}
+        runs={runs.map((run) => ({
+          id: run.id,
+          title: run.title,
+          status: run.status,
+          created_at: run.created_at,
+          script_version_number: run.script_version_number,
+          sent_count: run.sent_count,
+          started_count: run.started_count,
+          completed_count: run.completed_count,
+        }))}
+      />
+
+      <SurveyTestShellClient
+        scriptId={script.id}
+        versionId={activeVersion?.id ?? null}
+        draft={draft}
+        timeLimitMinutes={15}
+      />
+    </div>
   );
 };

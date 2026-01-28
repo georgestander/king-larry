@@ -1,6 +1,6 @@
 "use server";
 
-import { SurveyShell } from "@/app/components/builder/SurveyShell";
+import { SurveyTopBar } from "@/app/components/builder/SurveyTopBar";
 import { buildSurveySteps } from "@/app/components/builder/steps";
 import { SurveyPublishClient } from "@/app/pages/survey-publish-client";
 import { defaultInterviewTemplate } from "@/data/default-script";
@@ -47,23 +47,29 @@ export const SurveyPublishPage = async ({ params }: { params: { id: string } }) 
   }
 
   return (
-    <SurveyShell
-      title={script.title}
-      subtitle="Publish & invite"
-      steps={steps}
-      versions={versions.map((version) => ({
-        id: version.id,
-        version: version.version,
-        status: version.status,
-        created_at: version.created_at,
-      }))}
-      runs={runs.map((run) => ({
-        id: run.id,
-        title: run.title,
-        status: run.status,
-        created_at: run.created_at,
-      }))}
-    >
+    <div className="space-y-6">
+      <SurveyTopBar
+        surveyId={script.id}
+        title={script.title}
+        steps={steps}
+        versions={versions.map((version) => ({
+          id: version.id,
+          version: version.version,
+          status: version.status,
+          created_at: version.created_at,
+        }))}
+        runs={runs.map((run) => ({
+          id: run.id,
+          title: run.title,
+          status: run.status,
+          created_at: run.created_at,
+          script_version_number: run.script_version_number,
+          sent_count: run.sent_count,
+          started_count: run.started_count,
+          completed_count: run.completed_count,
+        }))}
+      />
+
       {activeVersion ? (
         <SurveyPublishClient
           scriptId={script.id}
@@ -88,6 +94,6 @@ export const SurveyPublishPage = async ({ params }: { params: { id: string } }) 
           Save a script version before publishing a run.
         </div>
       )}
-    </SurveyShell>
+    </div>
   );
 };
