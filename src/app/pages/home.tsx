@@ -1,6 +1,8 @@
-import { Welcome } from "./welcome.js";
+import Dashboard from "./dashboard.js";
+import { ensureSeedData, listScripts, listSessions } from "@/server/store";
 
-export const Home = () => {
-  // _Feel free to delete this element and its import_
-  return <Welcome />;
+export const Home = async () => {
+  await ensureSeedData();
+  const [scripts, sessions] = await Promise.all([listScripts(), listSessions()]);
+  return <Dashboard scripts={scripts} sessions={sessions} />;
 };
