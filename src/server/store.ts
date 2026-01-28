@@ -261,6 +261,26 @@ export const listSessions = async () => {
     .execute();
 };
 
+export const listSessionsByScriptId = async (scriptId: string) => {
+  const db = getDb();
+  return db
+    .selectFrom("sessions")
+    .innerJoin("script_versions", "script_versions.id", "sessions.script_version_id")
+    .select([
+      "sessions.id",
+      "sessions.script_version_id",
+      "sessions.title",
+      "sessions.time_limit_minutes",
+      "sessions.provider",
+      "sessions.model",
+      "sessions.status",
+      "sessions.created_at",
+    ])
+    .where("script_versions.script_id", "=", scriptId)
+    .orderBy("sessions.created_at", "desc")
+    .execute();
+};
+
 export const getSession = async (sessionId: string) => {
   const db = getDb();
   const rows = await db.selectFrom("sessions").selectAll().where("id", "=", sessionId).execute();
