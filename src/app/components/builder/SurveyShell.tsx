@@ -22,7 +22,9 @@ export type SurveyRunItem = {
   title: string;
   status: string;
   created_at: string;
+  script_version_number?: number;
   sent_count?: number;
+  started_count?: number;
   completed_count?: number;
 };
 
@@ -46,6 +48,8 @@ export const SurveyShell = ({
   children,
 }: SurveyShellProps) => {
   const [collapsed, setCollapsed] = useState(false);
+  const formatTimestamp = (value: string) =>
+    new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
   useEffect(() => {
     const stored = window.localStorage.getItem("surveySidebarCollapsed");
@@ -221,7 +225,7 @@ export const SurveyShell = ({
                   <div className="rounded-xl border border-ink-200/60 bg-white/95 p-2 text-xs">
                     <p className="font-semibold text-ink-900">Version {activeVersion.version}</p>
                     <p className="text-[11px] text-ink-500">
-                      {new Date(activeVersion.created_at).toLocaleDateString()}
+                      {formatTimestamp(activeVersion.created_at)}
                     </p>
                   </div>
                 )}
@@ -233,7 +237,7 @@ export const SurveyShell = ({
                           <div>
                             <p className="text-xs font-semibold text-ink-900">Version {version.version}</p>
                             <p className="text-[11px] text-ink-500">
-                              {new Date(version.created_at).toLocaleDateString()}
+                              {formatTimestamp(version.created_at)}
                             </p>
                           </div>
                         )}
@@ -260,7 +264,7 @@ export const SurveyShell = ({
                   <div className="rounded-xl border border-ink-200/60 bg-white/95 p-2 text-xs">
                     <p className="font-semibold text-ink-900">{activeRun.title}</p>
                     <p className="text-[11px] text-ink-500">
-                      {new Date(activeRun.created_at).toLocaleDateString()}
+                      {formatTimestamp(activeRun.created_at)}
                     </p>
                   </div>
                 )}
@@ -272,7 +276,7 @@ export const SurveyShell = ({
                           <div>
                             <p className="text-xs font-semibold text-ink-900">{run.title}</p>
                             <p className="text-[11px] text-ink-500">
-                              {new Date(run.created_at).toLocaleDateString()}
+                              {formatTimestamp(run.created_at)}
                             </p>
                           </div>
                         )}
