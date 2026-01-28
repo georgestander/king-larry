@@ -7,6 +7,7 @@ import { getModel, resolveProvider } from "@/lib/ai";
 import { interviewFromEditorDraft } from "@/lib/editor-to-interview";
 import { validateEditorDraft } from "@/lib/editor-validators";
 import { buildSystemPrompt } from "@/lib/prompt";
+import { defaultPrompt } from "@/data/default-script";
 import { errorResponse, isMockAiEnabled, json, parseJsonBody, prependTextStream, textStreamResponse } from "@/server/api/utils";
 import { getScript, getScriptVersion, updateScriptVersionPreview } from "@/server/store";
 
@@ -91,7 +92,7 @@ export const handlePreviewChat = async (request: Request) => {
 
   const provider = resolveProvider(body.provider);
   const interview = interviewFromEditorDraft(validation.data);
-  const system = buildSystemPrompt(interview, validation.data.promptMarkdown, body.timeLimitMinutes ?? 15);
+  const system = buildSystemPrompt(interview, defaultPrompt, body.timeLimitMinutes ?? 15);
 
   try {
     const result = streamText({

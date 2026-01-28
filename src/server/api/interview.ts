@@ -6,6 +6,7 @@ import { getModel } from "@/lib/ai";
 import { buildSystemPrompt } from "@/lib/prompt";
 import { validateInterviewDefinition } from "@/lib/interview-validators";
 import { isTimeExceeded } from "@/lib/time";
+import { defaultPrompt } from "@/data/default-script";
 import {
   addMessage,
   getNextTurnIndex,
@@ -124,7 +125,7 @@ export const handleInterviewMessage = async (request: Request, token: string) =>
     return textStreamResponse(stream);
   }
 
-  const system = buildSystemPrompt(validation.data, version.prompt_markdown, session.time_limit_minutes);
+  const system = buildSystemPrompt(validation.data, defaultPrompt, session.time_limit_minutes);
 
   const result = streamText({
     model: getModel(session.provider, session.model),
