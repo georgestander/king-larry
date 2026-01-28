@@ -273,6 +273,17 @@ export const addMessage = async (participantId: string, turnIndex: number, role:
     .execute();
 };
 
+export const getNextTurnIndex = async (participantId: string) => {
+  const db = getDb();
+  const row = await db
+    .selectFrom("messages")
+    .select(({ fn }) => fn.max("turn_index").as("maxIndex"))
+    .where("participant_id", "=", participantId)
+    .executeTakeFirst();
+  const maxIndex = typeof row?.maxIndex === "number" ? row.maxIndex : 0;
+  return maxIndex + 1;
+};
+
 export const getParticipantTranscript = async (participantId: string) => {
   const db = getDb();
   return db
