@@ -63,6 +63,7 @@ export const SurveyShell = ({
     [steps],
   );
   const nextStep = currentIndex >= 0 ? steps[currentIndex + 1] : undefined;
+  const prevStep = currentIndex > 0 ? steps[currentIndex - 1] : undefined;
   const completedCount = useMemo(
     () => steps.filter((step) => step.status === "complete").length,
     [steps],
@@ -80,7 +81,7 @@ export const SurveyShell = ({
 
   return (
     <div className="min-h-screen bg-ink-50 text-ink-950 [background-image:radial-gradient(1200px_circle_at_top,_rgba(255,255,255,0.9),_transparent)]">
-      <header className="border-b border-ink-200/60 bg-white/80 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-ink-200/60 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-6">
           <div className="flex items-center gap-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-200 bg-white">
@@ -96,6 +97,22 @@ export const SurveyShell = ({
               <Badge variant="secondary">
                 Step {currentIndex + 1} of {steps.length}: {activeStep.label}
               </Badge>
+            )}
+            {prevStep && (
+              <Button asChild variant="outline" size="sm">
+                <a href={prevStep.href}>
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Back
+                </a>
+              </Button>
+            )}
+            {nextStep && (
+              <Button asChild size="sm">
+                <a href={nextStep.href}>
+                  Next: {nextStep.label}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </a>
+              </Button>
             )}
             <Button asChild variant="outline" size="sm">
               <a href="/surveys">All surveys</a>
