@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ArrowDown, ArrowUp, Plus, Save, Trash2 } from "lucide-react";
 
 import { Button } from "@/app/components/ui/button";
@@ -10,8 +10,6 @@ import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { ErrorBanner, type ErrorInfo } from "@/app/components/alerts/ErrorBanner";
 import type { ScriptEditorDraft } from "@/lib/editor-types";
-import { editorDraftFromInterview, interviewFromEditorDraft } from "@/lib/editor-to-interview";
-import { validateInterviewDefinition } from "@/lib/interview-validators";
 
 type SurveyScriptClientProps = {
   scriptId: string;
@@ -46,12 +44,6 @@ export const SurveyScriptClient = ({ scriptId, versionId, initialDraft }: Survey
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<ErrorInfo | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
-  const [importJson, setImportJson] = useState("");
-
-  const exportJson = useMemo(
-    () => JSON.stringify(interviewFromEditorDraft(draft), null, 2),
-    [draft],
-  );
 
   const handleMetaChange = (field: "title" | "subtitle", value: string) => {
     setDraft((prev) => ({
@@ -139,23 +131,6 @@ export const SurveyScriptClient = ({ scriptId, versionId, initialDraft }: Survey
     }
   };
 
-  const handleImport = () => {
-    setError(null);
-    try {
-      const parsed = JSON.parse(importJson) as unknown;
-      const validation = validateInterviewDefinition(parsed);
-      if (!validation.ok) {
-        setError({ message: validation.errors.join(", ") });
-        return;
-      }
-      const nextDraft = editorDraftFromInterview(validation.data);
-      nextDraft.promptMarkdown = draft.promptMarkdown;
-      setDraft(nextDraft);
-      setImportJson("");
-    } catch (err) {
-      setError({ message: err instanceof Error ? err.message : "Invalid JSON" });
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -251,44 +226,6 @@ export const SurveyScriptClient = ({ scriptId, versionId, initialDraft }: Survey
           {draft.questions.length === 0 && (
             <p className="text-sm text-ink-500">No questions yet. Add your first question.</p>
           )}
-        </CardContent>
-      </Card>
-
-      <Card className="border-ink-200/70 bg-white/95">
-        <CardHeader>
-          <CardTitle className="text-lg">Prompt</CardTitle>
-          <CardDescription>Control the tone and behavior of the interview assistant.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={draft.promptMarkdown}
-            onChange={(event) => setDraft((prev) => ({ ...prev, promptMarkdown: event.target.value }))}
-          />
-        </CardContent>
-      </Card>
-
-      <Card className="border-ink-200/70 bg-white/95">
-        <CardHeader>
-          <CardTitle className="text-base">Advanced: JSON import/export</CardTitle>
-          <CardDescription>Optional. Use only when you need the raw format.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Export JSON</Label>
-            <Textarea value={exportJson} readOnly className="min-h-[160px]" />
-          </div>
-          <div className="space-y-2">
-            <Label>Import JSON</Label>
-            <Textarea
-              value={importJson}
-              onChange={(event) => setImportJson(event.target.value)}
-              placeholder="Paste interview JSON here"
-              className="min-h-[120px]"
-            />
-            <Button variant="secondary" onClick={handleImport} disabled={!importJson.trim()}>
-              Import JSON
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
