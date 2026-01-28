@@ -1,8 +1,8 @@
 "use server";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { SurveyShell } from "@/app/components/builder/SurveyShell";
 import { buildSurveySteps } from "@/app/components/builder/steps";
+import { SurveyPublishClient } from "@/app/pages/survey-publish-client";
 import { getActiveScriptVersion, getScript, listScriptVersions, listSessionsByScriptId } from "@/server/store";
 
 export const SurveyPublishPage = async ({ params }: { params: { id: string } }) => {
@@ -47,14 +47,16 @@ export const SurveyPublishPage = async ({ params }: { params: { id: string } }) 
         created_at: run.created_at,
       }))}
     >
-      <Card className="border-ink-200/70 bg-white/95">
-        <CardHeader>
-          <CardTitle className="text-xl">Publish & invite</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-ink-600">
-          <p>Create a run and generate invite links for participants.</p>
-        </CardContent>
-      </Card>
+      {activeVersion ? (
+        <SurveyPublishClient
+          versionId={activeVersion.id}
+          defaultTitle={script.title}
+        />
+      ) : (
+        <div className="rounded-2xl border border-ink-200 bg-white/90 p-8 text-sm text-ink-600">
+          Save a script version before publishing a run.
+        </div>
+      )}
     </SurveyShell>
   );
 };

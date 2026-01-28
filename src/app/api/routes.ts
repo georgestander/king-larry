@@ -4,7 +4,7 @@ import { handleExportCsv, handleExportPdf } from "@/server/api/exports";
 import { handleInterviewComplete, handleInterviewMessage } from "@/server/api/interview";
 import { handlePreviewChat, handlePreviewSave } from "@/server/api/preview";
 import { handleScripts, handleScriptRollback, handleScriptsGenerate, handleScriptVersions } from "@/server/api/scripts";
-import { handleParticipantTranscript, handleSessionDetail, handleSessionInvite, handleSessions } from "@/server/api/sessions";
+import { handleParticipantTranscript, handleSessionDetail, handleSessionInvite, handleSessionInviteAnonymous, handleSessions } from "@/server/api/sessions";
 
 export const apiRoutes = [
   route("/api/scripts/generate", ({ request }) => handleScriptsGenerate(request)),
@@ -17,6 +17,7 @@ export const apiRoutes = [
   route("/api/sessions", ({ request }) => handleSessions(request)),
   route("/api/sessions/:id", ({ request, params }) => handleSessionDetail(request, params.id)),
   route("/api/sessions/:id/invite", ({ request, params }) => handleSessionInvite(request, params.id)),
+  route("/api/sessions/:id/invite-anonymous", ({ request, params }) => handleSessionInviteAnonymous(request, params.id)),
   route("/api/participants/:id/transcript", ({ request, params }) => handleParticipantTranscript(request, params.id)),
   route("/api/interview/:token/message", ({ request, params }) => handleInterviewMessage(request, params.token)),
   route("/api/interview/:token/complete", ({ request, params }) => handleInterviewComplete(request, params.token)),

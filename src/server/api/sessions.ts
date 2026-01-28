@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  createAnonymousInvites,
   createParticipantInvites,
   createSession,
   getParticipantTranscript,
@@ -63,6 +64,19 @@ export const handleSessionInvite = async (request: Request, sessionId: string) =
   }
 
   const participants = await createParticipantInvites(sessionId, body.emails);
+  return json({ participants });
+};
+
+export const handleSessionInviteAnonymous = async (request: Request, sessionId: string) => {
+  if (request.method !== "POST") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const body = await parseJsonBody<{ count: number }>(request);
+  const count = Number(body?.count ?? 0);
+  if (!count || count < 1 || count > 500) {
+    return errorResponse(400, "count must be between 1 and 500");
+  }
+  const participants = await createAnonymousInvites(sessionId, count);
   return json({ participants });
 };
 

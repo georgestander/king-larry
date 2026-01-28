@@ -342,6 +342,24 @@ export const createParticipantInvites = async (sessionId: string, emails: string
   return participants;
 };
 
+export const createAnonymousInvites = async (sessionId: string, count: number) => {
+  const db = getDb();
+  const invitedAt = nowIso();
+  const participants: ParticipantRow[] = Array.from({ length: count }).map(() => ({
+    id: createId(),
+    session_id: sessionId,
+    email: null,
+    name: null,
+    invite_token: createInviteToken(),
+    status: "invited",
+    invited_at: invitedAt,
+    started_at: null,
+    completed_at: null,
+  }));
+  await db.insertInto("participants").values(participants).execute();
+  return participants;
+};
+
 export const getParticipantByToken = async (token: string) => {
   const db = getDb();
   const rows = await db
