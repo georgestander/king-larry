@@ -4,7 +4,16 @@ import { generateText } from "ai";
 
 import { getModel, resolveProvider } from "@/lib/ai";
 import { validateInterviewDefinition } from "@/lib/interview-validators";
-import { createScript, createScriptVersion, getScriptVersion, listScripts, listScriptVersions } from "@/server/store";
+import {
+  archiveScriptVersion,
+  createScript,
+  createScriptVersion,
+  getActiveScriptVersion,
+  getScript,
+  getScriptVersion,
+  listScripts,
+  listScriptVersions,
+} from "@/server/store";
 import { errorResponse, json, parseJsonBody } from "@/server/api/utils";
 
 type GenerateBody = {
@@ -80,11 +89,48 @@ export const handleScripts = async (request: Request) => {
 };
 
 export const handleScriptVersions = async (request: Request, scriptId: string) => {
-  if (request.method !== "GET") {
-    return errorResponse(405, "Method not allowed");
+  if (request.method === "GET") {
+    const versions = await listScriptVersions(scriptId);
+    return json({ versions });
   }
-  const versions = await listScriptVersions(scriptId);
-  return json({ versions });
+
+  if (request.method === "POST") {
+    const script = await getScript(scriptId);
+    if (!script) return errorResponse(404, "Script not found");
+
+    const body = await parseJsonBody<{ json: string; promptMarkdown?: string }>(request);
+    if (!body?.json) {
+      return errorResponse(400, "json is required");
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body.json);
+    } catch (error) {
+      return errorResponse(422, "Invalid JSON");
+    }
+
+    const validation = validateInterviewDefinition(parsed);
+    if (!validation.ok) {
+      return errorResponse(422, "Script failed validation", validation.errors);
+    }
+
+    const active = await getActiveScriptVersion(scriptId);
+    if (active?.id) {
+      await archiveScriptVersion(active.id);
+    }
+
+    const next = await createScriptVersion(
+      scriptId,
+      body.json,
+      body.promptMarkdown ?? "",
+      active?.id ?? null,
+    );
+
+    return json({ versionId: next.versionId, version: next.version });
+  }
+
+  return errorResponse(405, "Method not allowed");
 };
 
 export const handleScriptRollback = async (request: Request, scriptId: string) => {
@@ -98,6 +144,11 @@ export const handleScriptRollback = async (request: Request, scriptId: string) =
   const version = await getScriptVersion(body.versionId);
   if (!version || version.script_id !== scriptId) {
     return errorResponse(404, "Script version not found");
+  }
+
+  const active = await getActiveScriptVersion(scriptId);
+  if (active?.id) {
+    await archiveScriptVersion(active.id);
   }
 
   const next = await createScriptVersion(

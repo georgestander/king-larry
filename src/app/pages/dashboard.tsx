@@ -90,8 +90,8 @@ export default function Dashboard({ scripts, sessions }: DashboardProps) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <GenerateScriptDialog />
-            <CreateScriptDialog />
+            <GenerateScriptDialog scripts={scripts} />
+            <CreateScriptDialog scripts={scripts} />
             <CreateSessionDialog scripts={scripts} />
           </div>
         </div>
@@ -212,18 +212,28 @@ const InsightCard = ({ icon, title, description }: { icon: React.ReactNode; titl
   </Card>
 );
 
-const CreateScriptDialog = () => {
+const CreateScriptDialog = ({ scripts }: { scripts: ScriptSummary[] }) => {
   const [open, setOpen] = useState(false);
+  const [targetScriptId, setTargetScriptId] = useState("new");
   const [title, setTitle] = useState("");
   const [json, setJson] = useState("");
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const canSubmit = title.trim() && json.trim();
+  const requiresTitle = targetScriptId === "new";
+  const canSubmit = json.trim() && (!requiresTitle || title.trim());
+
+  const scriptTargets = useMemo(
+    () => scripts.map((script) => ({ value: script.id, label: script.title })),
+    [scripts],
+  );
 
   const handleSubmit = async () => {
     setError(null);
     try {
-      await postJson("/api/scripts", {
+      const endpoint = targetScriptId === "new"
+        ? "/api/scripts"
+        : `/api/scripts/${targetScriptId}/versions`;
+      await postJson(endpoint, {
         title,
         json,
         promptMarkdown: prompt,
@@ -246,6 +256,23 @@ const CreateScriptDialog = () => {
           <DialogDescription>Paste a validated interview JSON and optional prompt.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Save to</Label>
+            <Select value={targetScriptId} onValueChange={setTargetScriptId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new">Create new script</SelectItem>
+                {scriptTargets.map((script) => (
+                  <SelectItem key={script.value} value={script.value}>
+                    {script.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-slate-500">Selecting an existing script creates a new version.</p>
+          </div>
           <div className="space-y-2">
             <Label>Script title</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Role Documentation Interview" />
@@ -273,14 +300,30 @@ const CreateScriptDialog = () => {
   );
 };
 
-const GenerateScriptDialog = () => {
+const GenerateScriptDialog = ({ scripts }: { scripts: ScriptSummary[] }) => {
   const [open, setOpen] = useState(false);
+  const [targetScriptId, setTargetScriptId] = useState("new");
   const [title, setTitle] = useState("");
   const [goal, setGoal] = useState("");
   const [audience, setAudience] = useState("");
   const [notes, setNotes] = useState("");
+  const [provider, setProvider] = useState<SessionSummary["provider"]>("anthropic");
+  const [model, setModel] = useState("claude-sonnet-4-20250514");
   const [generated, setGenerated] = useState<{ json: string; prompt: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const scriptTargets = useMemo(
+    () => scripts.map((script) => ({ value: script.id, label: script.title })),
+    [scripts],
+  );
+
+  useEffect(() => {
+    if (targetScriptId === "new") return;
+    const match = scripts.find((script) => script.id === targetScriptId);
+    if (match && !title.trim()) {
+      setTitle(match.title);
+    }
+  }, [scripts, targetScriptId, title]);
 
   const handleGenerate = async () => {
     setError(null);
@@ -290,6 +333,8 @@ const GenerateScriptDialog = () => {
         goal,
         audience,
         notes,
+        provider,
+        model,
       });
       setGenerated({
         json: JSON.stringify(result.script, null, 2),
@@ -304,7 +349,10 @@ const GenerateScriptDialog = () => {
     if (!generated) return;
     setError(null);
     try {
-      await postJson("/api/scripts", {
+      const endpoint = targetScriptId === "new"
+        ? "/api/scripts"
+        : `/api/scripts/${targetScriptId}/versions`;
+      await postJson(endpoint, {
         title,
         json: generated.json,
         promptMarkdown: generated.prompt,
@@ -338,6 +386,23 @@ const GenerateScriptDialog = () => {
             <TabsTrigger value="result" disabled={!generated}>Result</TabsTrigger>
           </TabsList>
           <TabsContent value="brief" className="space-y-4">
+            <div className="space-y-2">
+              <Label>Save to</Label>
+              <Select value={targetScriptId} onValueChange={setTargetScriptId}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">Create new script</SelectItem>
+                  {scriptTargets.map((script) => (
+                    <SelectItem key={script.value} value={script.value}>
+                      {script.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">Selecting an existing script creates a new version.</p>
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>Script title</Label>
@@ -355,6 +420,25 @@ const GenerateScriptDialog = () => {
             <div className="space-y-2">
               <Label>Notes</Label>
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Tone, constraints, specifics." />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Provider</Label>
+                <Select value={provider} onValueChange={(value) => setProvider(value as SessionSummary["provider"])}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="anthropic">Anthropic</SelectItem>
+                    <SelectItem value="openai">OpenAI</SelectItem>
+                    <SelectItem value="openrouter">OpenRouter</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Model</Label>
+                <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="claude-sonnet-4-20250514" />
+              </div>
             </div>
           </TabsContent>
           <TabsContent value="result" className="space-y-4">
