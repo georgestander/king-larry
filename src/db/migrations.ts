@@ -104,7 +104,13 @@ export const migrations: Record<string, Migration> = {
       await db.schema
         .alterTable("script_versions")
         .addColumn("editor_json", "text")
+        .execute();
+      await db.schema
+        .alterTable("script_versions")
         .addColumn("preview_transcript_json", "text")
+        .execute();
+      await db.schema
+        .alterTable("script_versions")
         .addColumn("preview_updated_at", "text")
         .execute();
     },
@@ -112,7 +118,13 @@ export const migrations: Record<string, Migration> = {
       await db.schema
         .alterTable("script_versions")
         .dropColumn("editor_json")
+        .execute();
+      await db.schema
+        .alterTable("script_versions")
         .dropColumn("preview_transcript_json")
+        .execute();
+      await db.schema
+        .alterTable("script_versions")
         .dropColumn("preview_updated_at")
         .execute();
     },
