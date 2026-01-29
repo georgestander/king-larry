@@ -36,6 +36,53 @@ Set one or more provider keys in `.env`:
 - `pnpm check`: generate types + TypeScript check
 - `pnpm build`: production build
 
+## Deploy (Cloudflare)
+
+This app deploys as a Cloudflare Worker named `king-larry` (see `wrangler.jsonc`).
+
+1. Login / verify your Cloudflare account:
+
+```shell
+pnpm wrangler whoami
+```
+
+2. Set at least one AI provider key (recommended: OpenAI):
+
+```shell
+pnpm wrangler secret put OPENAI_API_KEY
+```
+
+Optional (only if you use them):
+
+```shell
+pnpm wrangler secret put ANTHROPIC_API_KEY
+pnpm wrangler secret put OPENROUTER_API_KEY
+```
+
+Optional model defaults:
+
+```shell
+pnpm wrangler secret put OPENAI_MODEL
+pnpm wrangler secret put ANTHROPIC_MODEL
+pnpm wrangler secret put OPENROUTER_MODEL
+```
+
+3. Deploy:
+
+```shell
+pnpm release
+```
+
+4. Tail logs (server logs + errors):
+
+```shell
+pnpm wrangler tail
+```
+
+Notes:
+- `.dev.vars` is used for local development (in this repo it’s a symlink to `.env`). Don’t commit secrets.
+- Invite links only work for teammates when you’re using a deployed URL (not `localhost`).
+
 ## References
 
 - RedwoodSDK: `https://docs.rwsdk.com/`
