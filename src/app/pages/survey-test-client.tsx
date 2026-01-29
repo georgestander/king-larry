@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { MessageSquareText, RefreshCw } from "lucide-react";
 import { TextStreamChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
 
 import { ErrorBanner, type ErrorInfo } from "@/app/components/alerts/ErrorBanner";
 import { InterviewChat } from "@/app/components/chat/InterviewChat";
+import { Dialog, DialogContent, DialogTrigger } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { loadAiSettings } from "@/app/lib/ai-settings";
@@ -32,6 +33,7 @@ export const SurveyTestClient = ({ draft, timeLimitMinutes }: SurveyTestClientPr
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [input, setInput] = useState("");
   const [completed, setCompleted] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const transport = useMemo(() => new TextStreamChatTransport({ api: "/api/preview/chat" }), []);
   const { messages, sendMessage, status, setMessages, error } = useChat({ transport });
@@ -127,33 +129,57 @@ export const SurveyTestClient = ({ draft, timeLimitMinutes }: SurveyTestClientPr
             {" · "}
             <span className="font-semibold">{model || "—"}</span>
           </p>
-          <Button size="sm" variant="outline" onClick={handleReset} disabled={!started && messages.length === 0}>
-            <RefreshCw className="h-4 w-4" />
-            Start over
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={handleReset} disabled={!started && messages.length === 0}>
+              <RefreshCw className="h-4 w-4" />
+              Start over
+            </Button>
+            <Dialog open={chatOpen} onOpenChange={setChatOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" disabled={!isChatReady}>
+                  <MessageSquareText className="h-4 w-4" />
+                  Open test chat
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="h-[90vh] max-w-5xl border-none bg-transparent p-0 shadow-none">
+                <InterviewChat
+                  className="h-full"
+                  layout="embedded"
+                  title={draft.meta.title}
+                  subtitle="Preview — this simulates the respondent UI."
+                  timeLimitMinutes={timeLimitMinutes}
+                  remainingSeconds={remainingSeconds}
+                  started={started}
+                  messages={messages}
+                  input={input}
+                  onInputChange={setInput}
+                  onSubmit={handleSubmit}
+                  onStart={startInterview}
+                  onComplete={() => setCompleted(true)}
+                  startDisabled={!isChatReady}
+                  inputDisabled={!isChatReady}
+                  isLoading={isLoading}
+                  completed={completed}
+                  showFinish={false}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className="border-ink-200/70 bg-white/90">
+        <CardContent className="space-y-3 py-10 text-sm text-ink-600">
+          <p className="font-semibold text-ink-900">Test chat</p>
+          <p>
+            Open the modal to preview the respondent UI. The chat scrolls independently and stays pinned to the latest
+            message.
+          </p>
+          <Button onClick={() => setChatOpen(true)} disabled={!isChatReady} className="w-full sm:w-auto">
+            <MessageSquareText className="h-4 w-4" />
+            Open test chat
           </Button>
         </CardContent>
       </Card>
-
-      <InterviewChat
-        layout="embedded"
-        title={draft.meta.title}
-        subtitle="Preview — this simulates the respondent UI."
-        timeLimitMinutes={timeLimitMinutes}
-        remainingSeconds={remainingSeconds}
-        started={started}
-        messages={messages}
-        input={input}
-        onInputChange={setInput}
-        onSubmit={handleSubmit}
-        onStart={startInterview}
-        onComplete={() => setCompleted(true)}
-        startDisabled={!isChatReady}
-        inputDisabled={!isChatReady}
-        isLoading={isLoading}
-        completed={completed}
-        showFinish={false}
-      />
     </div>
   );
 };
-
