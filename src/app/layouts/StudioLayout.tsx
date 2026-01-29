@@ -78,7 +78,7 @@ export const StudioLayout = async ({ children, requestInfo }: LayoutProps) => {
                     <span className="truncate">{survey.title}</span>
                     <div className="flex items-center gap-1">
                       {survey.active_run_count > 0 && <Badge variant="accent">Live</Badge>}
-                      <Badge variant="secondary">{survey.version_count} v</Badge>
+  
                     </div>
                   </a>
                 ))}
