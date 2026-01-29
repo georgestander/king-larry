@@ -1,5 +1,3 @@
-"use server";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { SurveyTopBar } from "@/app/components/builder/SurveyTopBar";
 import { buildSurveySteps } from "@/app/components/builder/steps";

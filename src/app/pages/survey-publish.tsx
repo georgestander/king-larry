@@ -1,5 +1,3 @@
-"use server";
-
 import { SurveyTopBar } from "@/app/components/builder/SurveyTopBar";
 import { buildSurveySteps } from "@/app/components/builder/steps";
 import { SurveyPublishClient } from "@/app/pages/survey-publish-client";

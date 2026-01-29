@@ -1,5 +1,3 @@
-"use server";
-
 import { SurveyTopBar } from "@/app/components/builder/SurveyTopBar";
 import { buildSurveySteps } from "@/app/components/builder/steps";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -88,4 +86,3 @@ export const SurveyInvitePage = async ({ params }: { params: { id: string } }) =
     </div>
   );
 };
-
