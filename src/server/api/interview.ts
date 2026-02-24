@@ -47,6 +47,12 @@ const readStreamToString = async (stream: ReadableStream<string>) => {
   return result;
 };
 
+const parseStoredScript = (value: unknown): unknown => {
+  if (typeof value === "string") return JSON.parse(value);
+  if (value && typeof value === "object") return value;
+  throw new Error("Stored script is missing");
+};
+
 export const handleInterviewMessage = async (request: Request, token: string) => {
   const body = await parseJsonBody<{ messages: UIMessage[] }>(request);
   const messages = body?.messages ?? [];
@@ -64,7 +70,13 @@ export const handleInterviewMessage = async (request: Request, token: string) =>
   const version = await getScriptVersion(session.script_version_id);
   if (!version) return errorResponse(404, "Script version not found");
 
-  const parsed = JSON.parse(version.json) as unknown;
+  let parsed: unknown;
+  try {
+    parsed = parseStoredScript(version.json);
+  } catch {
+    return errorResponse(422, "Stored script is not valid JSON");
+  }
+
   const validation = validateInterviewDefinition(parsed);
   if (!validation.ok) {
     return errorResponse(422, "Stored script failed validation", validation.errors);
