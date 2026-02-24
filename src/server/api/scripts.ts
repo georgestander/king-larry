@@ -138,6 +138,16 @@ Return ONLY valid JSON.`;
 const ensureString = (value: unknown, fallback: string) =>
   typeof value === "string" && value.trim() ? value.trim() : fallback;
 
+const normalizeJsonText = (value: unknown): string => {
+  if (typeof value === "string") return value;
+  return JSON.stringify(value, null, 2);
+};
+
+const normalizeOptionalJsonText = (value: unknown): string | null => {
+  if (value === null || value === undefined) return null;
+  return typeof value === "string" ? value : JSON.stringify(value, null, 2);
+};
+
 export const handleScripts = async (request: Request) => {
   if (request.method === "GET") {
     const scripts = await listScripts();
@@ -299,10 +309,10 @@ export const handleScriptRollback = async (request: Request, scriptId: string) =
 
   const next = await createScriptVersion(
     scriptId,
-    version.json,
+    normalizeJsonText(version.json),
     version.prompt_markdown,
     body.versionId,
-    version.editor_json,
+    normalizeOptionalJsonText(version.editor_json),
     version.preview_transcript_json,
     version.preview_updated_at,
   );
