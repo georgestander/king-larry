@@ -18,6 +18,7 @@ import { SurveyRunsPage } from "@/app/pages/survey-runs";
 import { SurveyRunPage } from "@/app/pages/survey-run";
 import { SessionPage } from "@/app/pages/session";
 import { InterviewPage } from "@/app/pages/interview";
+import { Home } from "@/app/pages/home";
 
 export type AppContext = {};
 
@@ -34,8 +35,11 @@ export default defineApp([
   },
   ...apiRoutes,
   render(Document, [
+    route("/", ({ request }) =>
+      Response.redirect(new URL("/dashboard", request.url), 302),
+    ),
+    route("/dashboard", Home),
     layout(StudioLayout, [
-      route("/", SurveysPage),
       route("/surveys", SurveysPage),
       route("/surveys/new", SurveysNewPage),
       route("/surveys/:id", (requestInfo) => <SurveyOverviewPage {...requestInfo} />),
